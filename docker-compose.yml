@@ -1,0 +1,69 @@
+version: '2'
+services:
+  open_amqp:
+    container_name: open_amqp
+    image: rabbitmq:management
+    ports:
+     - 15672:15672
+     - 5672:5672
+  src_amqp:
+    container_name: src_amqp
+    image: rabbitmq:management
+    ports:
+     - 15671:15672
+     - 5671:5672
+  dest_amqp:
+    container_name: dest_amqp
+    image: rabbitmq:management
+    ports:
+     - 15670:15672
+     - 5670:5672
+  dev:
+    container_name: dev_amqp_e2e
+    build: .
+    image: abreits/dev_amqp_e2e
+    ports:
+     - 5858:5858  # node.js debugging passthrough to host
+    volumes:
+     - .:/src/
+    environment:
+     - AMQP_SRC_CONNECTION_URL=amqp://open_amqp
+     - AMQP_SRC_EXCHANGE=src
+     - AMQP_DEST_CONNECTION_URL=amqp://open_amqp
+     - AMQP_DEST_EXCHANGE=dest
+    depends_on:
+     - "open_amqp"
+    links:
+     - "open_amqp"
+  # e2e_shovel_src:
+  #   image: abreits/dev_amqp_e2e
+  #   volumes:
+  #    - .:/src/
+  #   environment:
+  #    - AMQP_SRC_BROKER=src_amqp
+  #    - AMQP_SRC_EXCHANGE=e2e
+  #    - AMQP_DEST_BROKER=open_amqp
+  #    - AMQP_DEST_EXCHANGE=e2e
+  #    - E2E_SHOVEL_TYPE=src
+  #   depends_on:
+  #    - "src_amqp"
+  #    - "open_amqp"
+  #   links:
+  #    - "src_amqp"
+  #    - "open_amqp"
+  # e2e_shovel_dest:
+  #   image: abreits/dev_amqp_e2e
+  #   volumes:
+  #    - .:/src/
+  #   environment:
+  #    - AMQP_SRC_BROKER=open_amqp
+  #    - AMQP_SRC_EXCHANGE=e2e
+  #    - AMQP_DEST_BROKER=open_amqp
+  #    - AMQP_DEST_EXCHANGE=e2e
+  #    - E2E_SHOVEL_TYPE=dest
+  #   depends_on:
+  #    - "src_amqp"
+  #    - "open_amqp"
+  #   links:
+  #    - "src_amqp"
+  #    - "open_amqp"
