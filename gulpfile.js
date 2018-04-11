@@ -23,7 +23,7 @@ function swallowError (error) {
 var tsProject = ts.createProject({
   module: "commonjs",
   target: "ES5",
-  declaration: true
+  declaration: false
 });
 
 gulp.task("default", ["build:clean"]);

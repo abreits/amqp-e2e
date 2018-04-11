@@ -41,9 +41,10 @@ VOLUME ["/src", "/src/node_modules"]
 # default node debug port
 EXPOSE 5858
 
-# define the default rabbitmq server to use
-ENV AMQPTEST_CONNECTION_URL=amqp://rabbitmq
+# define the default settings (default settings are settings for dev)
+ENV AMQP_SRC_CONNECTION_URL=amqp://rabbitmq
+ENV START=dev
 
 #initialize the docker development environment
 #CMD ["npm", "run", "docker-develop"]
-CMD ["node", "tools/alive"]
+CMD ["node", "index"]
