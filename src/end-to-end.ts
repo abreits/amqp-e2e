@@ -33,7 +33,7 @@ class EndToEnd {
     static encrypt(data: Buffer, key: string | Buffer, initialisationVector?: string) {
         let iv: Buffer;
         if (initialisationVector) {
-            iv = Buffer.from(iv + "               ").slice(0, 16);
+            iv = Buffer.from(initialisationVector + "               ").slice(0, 16);
         } else {
             iv = crypto.randomBytes(16);
         }
@@ -53,10 +53,10 @@ class EndToEnd {
     static decrypt(encryptedMessage: Buffer, key: string | Buffer) {
         const iv = encryptedMessage.slice(0, 16);
         const tag = encryptedMessage.slice(16, 32);
-        const encryptedContent = encryptedMessage.slice(32);
+        const encryptedData = encryptedMessage.slice(32);
         const decipher = crypto.createDecipheriv("aes-256-gcm", key, iv);
         decipher.setAuthTag(tag);
-        const data = Buffer.concat([decipher.update(encryptedContent), decipher.final()]);
+        const data = Buffer.concat([decipher.update(encryptedData), decipher.final()]);
         return data;
     }
 }

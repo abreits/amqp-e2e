@@ -3,12 +3,13 @@
  */
 
 var gulp = require("gulp");
+var runSequence = require("run-sequence");
 var del = require("del");
 var merge = require("merge2");
 var ts = require("gulp-typescript");
 var tslint = require("gulp-tslint");
 var sourcemaps = require("gulp-sourcemaps");
-var mocha = require("gulp-spawn-mocha");
+var mocha = require("gulp-mocha");
 
 // swallow errors in watch
 function swallowError (error) {
@@ -27,9 +28,16 @@ var tsProject = ts.createProject({
 });
 
 gulp.task("default", ["build:clean"]);
+// gulp.task("default", done => {
+//   runSequence("clean", "compile", "test", done);
+// });
 
-gulp.task("build", ["compile", "test:dot"]);
-gulp.task("build:clean", ["clean", "compile", "test:dot"]);
+gulp.task("build", done => {
+  runSequence("compile", "test:dot", done);
+});
+gulp.task("build:clean", done => {
+  runSequence("clean", "compile", "test:dot", done);
+});
 
 gulp.task("watch", ["clean", "build"], function () {
   gulp.watch("src/**/*.ts", ["build"]);
@@ -85,7 +93,8 @@ gulp.task("lint", function () {
 });
 
 // unit tests, more a fast integration test because at the moment it uses an external AMQP server
-gulp.task("test", function () {
+gulp.task("test", ["compile"], function () {
+  console.log("starting test!");
   return gulp.src("build/**/*.spec.js", {
     read: false
   })
@@ -128,5 +137,3 @@ gulp.task("test:coverage", function () {
       istanbul: true
     }));
 });
-
-
