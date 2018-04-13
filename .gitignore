@@ -57,3 +57,5 @@ typings/
 # dotenv environment variables file
 .env
 
+# even though not advised, it surely prevents a lot of problems...
+package-lock.json
