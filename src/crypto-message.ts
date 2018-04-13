@@ -20,9 +20,9 @@ import * as Amqp from "amqp-ts";
 const IV_LENGTH = 16;
 
 /**
- *  ent to end encryption/decryption support class
+ *  extend AmqpMessage class to support encryption
  */
-class EndToEnd {
+class CryptoMessage extends Amqp.Message {
     /**
      * Encrypt data with given key into an encryptedMessage
      * @param data Buffer data to encrypt (binary)
@@ -30,7 +30,8 @@ class EndToEnd {
      * @param initialisationVector string, optional, when provided must be unique for each call to prevent same data creating same encrypted message
      * @returns cryptoMessage, a Buffer with the encrypted message content
      */
-    static encrypt(data: Buffer, key: string | Buffer, initialisationVector?: string) {
+    encrypt(key: string | Buffer, initialisationVector?: string) {
+        const data = this.content;
         let iv: Buffer;
         if (initialisationVector) {
             iv = Buffer.from(initialisationVector + "               ").slice(0, 16);
@@ -41,7 +42,7 @@ class EndToEnd {
         const encryptedData = Buffer.concat([cipher.update(data), cipher.final()]);
         const tag = cipher.getAuthTag();
         const encryptedMessage = Buffer.concat([iv, tag, encryptedData]);
-        return encryptedMessage;
+        this.content = encryptedMessage;
     }
 
     /**
@@ -50,15 +51,16 @@ class EndToEnd {
      * @param key string | Buffer encryption key
      * @returns data, a Buffer with the decrypted message content
      */
-    static decrypt(encryptedMessage: Buffer, key: string | Buffer) {
+    decrypt(key: string | Buffer) {
+        const encryptedMessage = this.content;
         const iv = encryptedMessage.slice(0, 16);
         const tag = encryptedMessage.slice(16, 32);
         const encryptedData = encryptedMessage.slice(32);
         const decipher = crypto.createDecipheriv("aes-256-gcm", key, iv);
         decipher.setAuthTag(tag);
         const data = Buffer.concat([decipher.update(encryptedData), decipher.final()]);
-        return data;
+        this.content = data;
     }
 }
 
-export default EndToEnd;
+export default CryptoMessage;

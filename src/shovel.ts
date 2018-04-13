@@ -4,17 +4,16 @@
 
 import * as Amqp from "amqp-ts";
 import * as events from "events";
-import EndToEnd from "./end-to-end";
+import CryptoMessage from "./crypto-message";
 
 interface ShovelConnection {
     connectionUrl: string; //amqp connection url
-    bindTo: string; // name of the exchange or queue to bind to
-    exchangeType: string;
-    isQueue?: boolean; // expect to bind to an exchange by default
+    queue?: string; // name of the queue used in this connection, if undefined expects an exchange
+    exchange?: string;
+    exchangeType?: string; // defaults to 'fanout'
     options: Amqp.Exchange.DeclarationOptions | Amqp.Queue.DeclarationOptions;
     connection: Amqp.Connection;
     binding: Amqp.Queue | Amqp.Exchange;
-    // exchange: Amqp.Exchange;
 }
 
 class Shovel extends events.EventEmitter {
@@ -47,20 +46,20 @@ class Shovel extends events.EventEmitter {
 
     protected static createConnection(conn: ShovelConnection) {
         conn.connection = new Amqp.Connection(conn.connectionUrl);
-        if(conn.isQueue) {
-            conn.binding = conn.connection.declareQueue(conn.bindTo, conn.options);
+        if(conn.queue !== undefined) {
+            conn.binding = conn.connection.declareQueue(conn.queue, conn.options);
         } else {
-            conn.binding = conn.connection.declareExchange(conn.bindTo, conn.exchangeType ? conn.exchangeType : "fanout", conn.options);
+            conn.binding = conn.connection.declareExchange(conn.queue, conn.exchangeType ? conn.exchangeType : "fanout", conn.options);
         }
     }
 
-    protected encryptAndSend = (message: Amqp.Message) => {
-        message.content = EndToEnd.encrypt(message.content, this.currentKey);
+    protected encryptAndSend = (message: CryptoMessage) => {
+        message.encrypt(this.currentKey);
         message.sendTo(this.to.binding);
     }
 
-    protected decryptAndSend = (message: Amqp.Message) => {
-        message.content = EndToEnd.decrypt(message.content, this.currentKey);
+    protected decryptAndSend = (message: CryptoMessage) => {
+        message.decrypt(this.currentKey);
         message.sendTo(this.to.binding);
     }
 }
