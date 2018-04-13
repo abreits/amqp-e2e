@@ -34,6 +34,9 @@ RUN npm install -g gulp
 
 # copy and install local development libraries
 COPY package.json /src/
+RUN rm ./package-lock.json
+RUN rm -r ./node_modules
+RUN npm cache clear --force
 RUN npm install
 
 # needed to keep the docker version of the libraries separate from the local version
