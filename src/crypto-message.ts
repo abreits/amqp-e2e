@@ -1,4 +1,4 @@
-/* amqp-e2e.ts ** start the correct end to end encryption modules
+/* crypto-message.ts ** extend Amqp.Message class to support encryption
  * 2018-04-11 ** by Ab Reitsma
  */
 
@@ -12,25 +12,26 @@ import * as Amqp from "amqp-ts";
  */
 
 /* encrypted message format with AES-256-GCM:
- * [2 bytes keyId][16 bytes initialisationVector][encryptedData]
- * - keyId: an id of the decryption key that must be used,
+ * [8 bytes keyId][16 bytes initialisationVector][16 bytes tag][encryptedData]
+ * - keyId: TODO: an id of the decryption key that must be used,
  * - initialisationVector: needed for the decryption of the encryptedData
  * - encryptedData: data to be decrypted
  */
 const IV_LENGTH = 16;
 
 /**
- *  extend AmqpMessage class to support encryption
+ *  extend Amqp.Message class to support encryption
  */
-class CryptoMessage extends Amqp.Message {
+export class CryptoMessage extends Amqp.Message {
+
+    //static key: KeyManager;
     /**
      * Encrypt data with given key into an encryptedMessage
-     * @param data Buffer data to encrypt (binary)
      * @param key string | Buffer encryption key
      * @param initialisationVector string, optional, when provided must be unique for each call to prevent same data creating same encrypted message
      * @returns cryptoMessage, a Buffer with the encrypted message content
      */
-    encrypt(key: string | Buffer, initialisationVector?: string) {
+    encrypt (key: string | Buffer, initialisationVector?: string) {
         const data = this.content;
         let iv: Buffer;
         if (initialisationVector) {
@@ -47,11 +48,10 @@ class CryptoMessage extends Amqp.Message {
 
     /**
      * Decrypt an encryptedMessage to data with given key
-     * @param encryptedMessage Buffer encrypte message
      * @param key string | Buffer encryption key
      * @returns data, a Buffer with the decrypted message content
      */
-    decrypt(key: string | Buffer) {
+    decrypt (key: string | Buffer) {
         const encryptedMessage = this.content;
         const iv = encryptedMessage.slice(0, 16);
         const tag = encryptedMessage.slice(16, 32);
