@@ -4,6 +4,7 @@
 
 import * as Amqp from "amqp-ts";
 import * as events from "events";
+import {Key} from "./key-manager";
 import CryptoMessage from "./crypto-message";
 
 export interface ShovelConnection {
@@ -14,15 +15,14 @@ export interface ShovelConnection {
     options?: Amqp.Queue.DeclarationOptions;
 }
 
-export interface ShovelDefinition {
-    name: string; //name of the shovel, used to access and log running shovels, must be unique
+export interface SimpleShovelDefinition {
     encrypts: boolean;
     from: ShovelConnection;
     to: ShovelConnection;
 }
 
-export class CryptoShovel extends events.EventEmitter {
-    currentKey: string;
+export class SimpleCryptoShovel extends events.EventEmitter {
+    currentKey: Key;
 
     //todo: for multiple decryption keys, provide a structure or function to get key based on an id (key id provided in encrypted message)
 
@@ -42,8 +42,8 @@ export class CryptoShovel extends events.EventEmitter {
         this.encrypts = encrypts;
 
         // create shovel
-        [this.fromConnection, this.fromBinding] = CryptoShovel.createConnection(from);
-        [this.toConnection, this.toBinding] = CryptoShovel.createConnection(to);
+        [this.fromConnection, this.fromBinding] = SimpleCryptoShovel.createConnection(from);
+        [this.toConnection, this.toBinding] = SimpleCryptoShovel.createConnection(to);
         if (this.encrypts) {
             // receive raw, send encrypted
             this.fromBinding.activateConsumer(this.encryptAndSend);
@@ -75,4 +75,4 @@ export class CryptoShovel extends events.EventEmitter {
     }
 }
 
-export default CryptoShovel;
+export default SimpleCryptoShovel;

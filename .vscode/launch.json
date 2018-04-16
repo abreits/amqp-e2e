@@ -43,7 +43,7 @@
 			"stopOnEntry": false,
 			// Command line arguments passed to the program.
 			"args": [
-				"transpiled/amqp-ts.spec.js"
+				"build/key-manager.spec.js"
 			],
 			// Workspace relative or absolute path to the working directory of the program being debugged. Default is the current workspace.
 			"cwd": "${workspaceRoot}/",

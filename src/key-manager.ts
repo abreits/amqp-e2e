@@ -3,74 +3,106 @@
  */
 import * as crypto from "crypto";
 
-export interface Key {
-    id: Buffer;         // 8 byte buffer
-    value: Buffer;      // 32 byte buffer
-    ttl: number;        // time to live after activateUtc in seconds
-    activateUtc: Date;  // startdate and time for using this key
+const KEYID_LENGTH = 8;
+const KEY_LENGTH = 32;
+
+/**
+ *  key class, defines a new key and initializes it with a random key and id
+ */
+export class Key {
+    id: Buffer; // 8 byte buffer
+    key: Buffer; // 32 byte buffer
+    activateOn: Date; // DateTime when to activate this key as the active key for encryption
+    activateOff: Date; //DateTime when to deactivate again
+    created: Date;
+
+    constructor(forKeyManager?: KeyManager) {
+        this.key = crypto.randomBytes(KEY_LENGTH);
+        this.created = new Date();
+        if (forKeyManager) {
+            do {
+                this.id = crypto.randomBytes(KEYID_LENGTH);
+            } while (forKeyManager.get(this.id));
+            forKeyManager.add(this);
+        }
+
+    }
 }
 
-// simple key-value implementation with persist to json file
+/**
+ *  KeyManager class
+ */
 export class KeyManager {
-    private keyList: {[id: string]: Buffer};
-    private currentKeyId: string;
+    protected keys: { [lookup: string]: Key } = {};
+    protected encryptionKey: Key;
 
-    constructor () {
-        // when to generate new keys, when to forget old keys
+    add(key: Key) {
+        let lookup = key.id.toString("base64");
+        if (!this.keys[lookup]) {
+            this.keys[lookup] = key;
+        } else {
+            throw new Error("Key id already exists");
+        }
+    }
+
+    delete(key: Key) {
+        let lookup = key.id.toString("base64");
+        delete this.keys[lookup];
+    }
+
+    get(id: Buffer) {
+        if (id) {
+        let lookup = id.toString("base64");
+        return this.keys[lookup];
+        } else {
+            throw new Error("Empty KeyManager id");
+        }
+    }
+
+    getEncryptionKey() {
+        return this.encryptionKey;
     }
 
     /**
-     * adds key to dictionary, throws error if key already exists
-     * @param key 32 byte Buffer
-     * @param id 8 byte Buffer
+     * If no key is supplied, sets the most recently added active key
+     * (when current DateTime between activeteOn and activatOff) as active
+     * @param key the Key to set as active
      */
-    addKey (key: Buffer, id: Buffer) {
-        let lookup = id.toString("base64");
-        if(!this.keyList[lookup]) {
-            this.keyList[lookup] = key;
+    setEncryptionKey(key?: Key) {
+        if (key) {
+            if (this.get(key.id)) {
+                this.encryptionKey = key;
+            } else {
+                throw new Error("key not in KeyManager");
+            }
         } else {
-            throw new Error("Key id already exists!");
+            let created;
+            this.encryptionKey = undefined;
+            for (let lookup in this.keys) {
+                const now = new Date();
+                const key = this.keys[lookup];
+                if (key.activateOn < now && !key.activateOff || key.activateOff > now) {
+                    if (!created || created < key.created) {
+                        created = created;
+                        this.encryptionKey = key;
+                    }
+                }
+            }
         }
     }
 
     /**
-     * replaces or adds key to dictionary
-     * @param key 32 byte Buffer
-     * @param id 8 byte Buffer
+     * remove deactivated keys
      */
-    replaceKey (key: Buffer, id: Buffer) {
-        let lookup = id.toString("base64");
-        this.keyList[lookup] = key;
-    }
+    cleanupKeys() {
+        const now = new Date();
 
-    /**
-     * removes key from dictionary
-     * @param id 8 byte Buffer
-     */
-    removeKey (id: Buffer) {
-        let lookup = id.toString("base64");
-        delete this.keyList[lookup];
-    }
-
-    /**
-     * sets the current (encryption) key to this id
-     * @param id 8 byte buffer
-     */
-    setKey (id: Buffer) {
-        let lookup = id.toString("base64");
-        this.currentKeyId = lookup;
-    }
-
-    /**
-     * gets the key with id
-     * @param id 8 byte buffer
-     */
-    getKey (id: Buffer) {
-        let lookup = id.toString("base64");
-        return this.currentKeyId[lookup];
-    }
-
-    get key() {
-        return this.keyList[this.currentKeyId];
+        for (let lookup in this.keys) {
+            let key = this.keys[lookup];
+            if (key.activateOff && key.activateOff >= now) {
+                delete this.keys[lookup];
+            }
+        }
     }
 }
+

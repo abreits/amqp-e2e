@@ -43,7 +43,7 @@
                 "--debug-brk",
                 "--nolazy",
                 "/src/node_modules/mocha/bin/_mocha",
-                "transpiled/amqp-ts.spec.js"
+                "build/crypto-message.spec.js"
             ]
         }
     ]
