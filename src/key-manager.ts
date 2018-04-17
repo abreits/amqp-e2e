@@ -69,24 +69,24 @@ export class KeyManager {
     protected keys: { [lookup: string]: Key } = {};
     protected encryptionKey: Key;
     protected persistFile: string;
-    protected autoPersist = false;
 
     /**
      *
      * @param persistFile file location to get/store json persistent version of the keymanager contents
      */
-    constructor(persistFile?: string, autoPersist = true) {
+    constructor(persistFile?: string) {
         if (persistFile) {
             this.persistFile = persistFile;
-            this.autoPersist = autoPersist;
             if (fs.existsSync(this.persistFile)) {
                 try {
-                    let persistText = fs.readFileSync(this.persistFile, {encoding: "utf8"});
-                    let parsed:PersistFormat = JSON.parse(persistText);
-                    for (let i=0; i < parsed.l.length; i+=1) {
-                        this.add(Key.import(parsed.l[i]));
+                    let persistText = fs.readFileSync(this.persistFile, { encoding: "utf8" });
+                    let parsed: PersistFormat = JSON.parse(persistText);
+                    if (parsed && parsed.l) {
+                        for (let i = 0; i < parsed.l.length; i += 1) {
+                            this.add(Key.import(parsed.l[i]));
+                        }
                     }
-                    if (parsed.e) {
+                    if (parsed && parsed.e) {
                         this.setEncryptionKey(this.get(new Buffer(parsed.e, "base64")));
                     }
                 } catch (e) {
@@ -94,19 +94,18 @@ export class KeyManager {
                 }
             }
         }
-        // check if persistFile exists, if true regenerate content from file
     }
 
     persist() {
-        let keyList:string[] = [];
+        let keyList: string[] = [];
         for (let lookup in this.keys) {
             keyList.push(this.keys[lookup].export());
         }
-        let exportStruct:PersistFormat = {l: keyList};
+        let exportStruct: PersistFormat = { l: keyList };
         if (this.encryptionKey) {
             exportStruct.e = this.encryptionKey.id.toString("base64");
         }
-        fs.writeFileSync(this.persistFile, JSON.stringify(exportStruct), {encoding: "utf8"});
+        fs.writeFileSync(this.persistFile, JSON.stringify(exportStruct), { encoding: "utf8" });
     }
 
     add(key: Key) {
