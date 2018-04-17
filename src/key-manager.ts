@@ -2,6 +2,7 @@
  * 2018-04-13 by Ab Reitsma
  */
 import * as crypto from "crypto";
+import * as fs from "fs";
 
 const KEYID_LENGTH = 8;
 const KEY_LENGTH = 32;
@@ -25,16 +26,88 @@ export class Key {
             } while (forKeyManager.get(this.id));
             forKeyManager.add(this);
         }
+    }
 
+    export() {
+        let s = "{";
+        s += this.id ? "\"i\":\"" + this.id.toString("base64") + "\"," : "";
+        s += "\"k\":\"" + this.key.toString("base64") + "\",";
+        s += this.activateOn ? "\"a\":" + this.activateOn.getTime() + "," : "";
+        s += this.activateOff ? "\"d\":" + this.activateOff.getTime() + "," : "";
+        s += "\"c\":" + this.created.getTime() + "}";
+
+        return s;
+    }
+
+    static import(exportString) {
+        let parsed = JSON.parse(exportString);
+        let key = new Key();
+        if (parsed.i) {
+            key.id = new Buffer(parsed.i, "base64");
+        }
+        key.key = new Buffer(parsed.k, "base64");
+        if (parsed.a) {
+            key.activateOn = new Date(parsed.a);
+        }
+        if (parsed.d) {
+            key.activateOff = new Date(parsed.d);
+        }
+        key.created = new Date(parsed.c);
+
+        return key;
     }
 }
 
+type PersistFormat = {
+    l: string[],
+    e?: string
+};
 /**
- *  KeyManager class
+ *  KeyManager class, with persistance to file
  */
 export class KeyManager {
     protected keys: { [lookup: string]: Key } = {};
     protected encryptionKey: Key;
+    protected persistFile: string;
+    protected autoPersist = false;
+
+    /**
+     *
+     * @param persistFile file location to get/store json persistent version of the keymanager contents
+     */
+    constructor(persistFile?: string, autoPersist = true) {
+        if (persistFile) {
+            this.persistFile = persistFile;
+            this.autoPersist = autoPersist;
+            if (fs.existsSync(this.persistFile)) {
+                try {
+                    let persistText = fs.readFileSync(this.persistFile, {encoding: "utf8"});
+                    let parsed:PersistFormat = JSON.parse(persistText);
+                    for (let i=0; i < parsed.l.length; i+=1) {
+                        this.add(Key.import(parsed.l[i]));
+                    }
+                    if (parsed.e) {
+                        this.setEncryptionKey(this.get(new Buffer(parsed.e, "base64")));
+                    }
+                } catch (e) {
+                    throw new Error("Error importing KeyManager persistFile");
+                }
+            }
+        }
+        // check if persistFile exists, if true regenerate content from file
+    }
+
+    persist() {
+        let keyList:string[] = [];
+        for (let lookup in this.keys) {
+            keyList.push(this.keys[lookup].export());
+        }
+        let exportStruct:PersistFormat = {l: keyList};
+        if (this.encryptionKey) {
+            exportStruct.e = this.encryptionKey.id.toString("base64");
+        }
+        fs.writeFileSync(this.persistFile, JSON.stringify(exportStruct), {encoding: "utf8"});
+    }
 
     add(key: Key) {
         let lookup = key.id.toString("base64");
@@ -52,8 +125,8 @@ export class KeyManager {
 
     get(id: Buffer) {
         if (id) {
-        let lookup = id.toString("base64");
-        return this.keys[lookup];
+            let lookup = id.toString("base64");
+            return this.keys[lookup];
         } else {
             throw new Error("Empty KeyManager id");
         }
@@ -70,7 +143,7 @@ export class KeyManager {
      */
     setEncryptionKey(key?: Key) {
         if (key) {
-            if (this.get(key.id)) {
+            if (this.get(key.id) === key) { // make sure the key exists inside the key manager
                 this.encryptionKey = key;
             } else {
                 throw new Error("key not in KeyManager");
@@ -81,14 +154,15 @@ export class KeyManager {
             for (let lookup in this.keys) {
                 const now = new Date();
                 const key = this.keys[lookup];
-                if (key.activateOn < now && !key.activateOff || key.activateOff > now) {
+                if ((!key.activateOn || key.activateOn) < now && (!key.activateOff || key.activateOff > now)) {
                     if (!created || created < key.created) {
-                        created = created;
+                        created = key.created;
                         this.encryptionKey = key;
                     }
                 }
             }
         }
+        return this.encryptionKey;
     }
 
     /**
