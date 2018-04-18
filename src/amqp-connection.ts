@@ -4,29 +4,34 @@
 
 import * as Amqp from "amqp-ts";
 
-export interface QueueDefinition {
-    queue: string;
-    options?: Amqp.Queue.DeclarationOptions;
-}
-
 export interface ExchangeDefinition {
     exchange: string;
     exchangeType: string;
     options: Amqp.Exchange.DeclarationOptions;
 }
 
+export interface QueueDefinition {
+    queue: string;
+    options?: Amqp.Queue.DeclarationOptions;
+}
+
+export interface ConnectionDefinition {
+    connectionUrl: string;
+    binding: ExchangeDefinition | QueueDefinition;
+}
+
 export class AmqpConnection {
     readonly connection: Amqp.Connection;
     readonly binding: Amqp.Exchange | Amqp.Queue;
 
-    constructor (connectionUrl: string, bindingDefinition: ExchangeDefinition | QueueDefinition) {
-        this.connection = new Amqp.Connection(connectionUrl);
-        if((<QueueDefinition>bindingDefinition).queue) {
-            const def = bindingDefinition as QueueDefinition;
+    constructor(definition: ConnectionDefinition) {
+        this.connection = new Amqp.Connection(definition.connectionUrl);
+        if ((<QueueDefinition>definition.binding).queue) {
+            const def = definition.binding as QueueDefinition;
             this.binding = this.connection.declareQueue(def.queue, def.options);
         } else {
-            const def = bindingDefinition as ExchangeDefinition;
-            this.binding = this.connection.declareExchange(def.exchangeType, def.exchangeType ? def.exchangeType : "fanout", def.options);
+            const def = definition.binding as ExchangeDefinition;
+            this.binding = this.connection.declareExchange(def.exchange, def.exchangeType ? def.exchangeType : "fanout", def.options);
         }
     }
 
@@ -35,10 +40,12 @@ export class AmqpConnection {
     }
 
     onMessage(messageProcessor: (msg: Amqp.Message) => void) {
-        this.binding.activateConsumer(messageProcessor);
+        this.binding.activateConsumer(messageProcessor, {noAck: true});
     }
 
     close() {
-        this.connection.close();
+        this.connection.deleteConfiguration().then(() => {
+            return this.connection.close();
+        });
     }
 }

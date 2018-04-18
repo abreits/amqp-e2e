@@ -4,9 +4,9 @@
 
 import * as fs from "fs";
 import * as Amqp from "amqp-ts";
-import {AmqpConnection, ExchangeDefinition, QueueDefinition} from "./amqp-connection";
-import {Key} from "./key-manager";
-import {CryptoMessage, addCryptoMessage} from "./crypto-message";
+import { AmqpConnection, ConnectionDefinition, ExchangeDefinition, QueueDefinition } from "./amqp-connection";
+import { Key } from "./key-manager";
+import { CryptoMessage, addCryptoMessage } from "./crypto-message";
 addCryptoMessage();
 
 
@@ -19,14 +19,48 @@ export interface SimpleShovelDefinition {
 export class SimpleCryptoShovel {
     currentKey: Key;
 
-    //todo: for multiple decryption keys, provide a structure or function to get key based on an id (key id provided in encrypted message)
-
     protected started: boolean;
     protected encrypts; // whether it is an encryption or a decryption shovel
+    protected fromConfig: ConnectionDefinition;
+    protected toConfig: ConnectionDefinition;
     protected from: AmqpConnection;
     protected to: AmqpConnection;
 
-    constructor (definitionFileName: string) {
+    constructor(configFileName: string) {
+        // read file and parse json
+        // TODO: error handling
+        const configString = fs.readFileSync(configFileName, "utf8");
+        const config = JSON.parse(configString);
+
+        this.fromConfig = config.from;
+        this.toConfig = config.to;
+        this.currentKey = new Key(null, Buffer.from(config.key, "hex"));
+        this.encrypts = config.encrypts;
+    }
+
+    start() {
+        this.from = new AmqpConnection(this.fromConfig);
+        this.to = new AmqpConnection(this.toConfig);
+        if (this.encrypts) {
+            this.from.onMessage(this.encryptAndSend);
+        } else {
+            this.from.onMessage(this.decryptAndSend);
+        }
+    }
+
+    stop() {
+        return Promise.all([
+            this.from.close(),
+            this.to.close()
+         ]);
+
+    }
+
+    get initialized(): Promise<any> {
+        return Promise.all([
+            this.from.connection.initialized,
+            this.to.connection.initialized
+         ]);
     }
 
     protected encryptAndSend = (message: CryptoMessage) => {

@@ -36,10 +36,10 @@ describe("Test crypto-message module", () => {
             expect(km.get(key.id)).to.equal(key);
         });
         it("should export a simple key", () => {
-            const key = new Key();
-            // make a constant key for testing purposes
-            key.key = Buffer.from("a9ITQAFpNi+wJqrw4n7SznGJ3rtACO1GoX8iYUHke+8=", "base64");
-            key.created = new Date(1523697157207);
+            const key = new Key(null,
+                Buffer.from("a9ITQAFpNi+wJqrw4n7SznGJ3rtACO1GoX8iYUHke+8=", "base64"),
+                new Date(1523697157207)
+            );
 
             expect(key.export()).to.equal("{\"k\":\"a9ITQAFpNi+wJqrw4n7SznGJ3rtACO1GoX8iYUHke+8=\",\"c\":1523697157207}");
         });

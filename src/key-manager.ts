@@ -17,9 +17,9 @@ export class Key {
     activateOff: Date; //DateTime when to deactivate again
     created: Date;
 
-    constructor(forKeyManager?: KeyManager) {
-        this.key = crypto.randomBytes(KEY_LENGTH);
-        this.created = new Date();
+    constructor(forKeyManager?: KeyManager, key?: Buffer, created?: Date) {
+        this.key = key ? key : crypto.randomBytes(KEY_LENGTH);
+        this.created = created ? created : new Date();
         if (forKeyManager) {
             do {
                 this.id = crypto.randomBytes(KEYID_LENGTH);

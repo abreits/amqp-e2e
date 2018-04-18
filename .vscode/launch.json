@@ -3,6 +3,18 @@
 	// List of configurations. Add new configurations or edit existing ones.
 	"configurations": [
 		{
+			"type": "node",
+			"request": "attach",
+			"name": "Docker: debug task",
+			"port": 5858,
+			"address": "localhost",
+			"localRoot": "${workspaceFolder}",
+			"remoteRoot": "/usr/src/app",
+			"sourceMaps": true,
+			"preLaunchTask": "debug",
+			"protocol": "inspector"
+		},
+		{
 			"request": "launch",
 			// Name of configuration; appears in the launch configuration drop down menu.
 			"name": "Run crypto-message.spec",
@@ -77,29 +89,6 @@
 			"type": "node",
 			// TCP/IP address. Default is "localhost".
 			"address": "localhost",
-			// Port to attach to.
-			"port": 5858,
-			"sourceMaps": true,
-			"remoteRoot": "/src/",
-			"localRoot": "${workspaceRoot}/"
-		},
-		{
-			"request": "attach",
-			"name": "Docker mocha tests",
-			"type": "node",
-			// TCP/IP address. Default is "localhost".
-			"address": "localhost",
-			// Start docker program to debug
-			"runtimeExecutable": "docker",
-			"runtimeArgs": [
-				"exec",
-				"dev-amqp-ts",
-                "node",
-                "--debug-brk",
-                "--nolazy",
-                "/src/node_modules/mocha/bin/_mocha",
-                "build/amqp-ts.spec.js"
-				],
 			// Port to attach to.
 			"port": 5858,
 			"sourceMaps": true,

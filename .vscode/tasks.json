@@ -37,7 +37,7 @@
             "taskName": "debug",
             "suppressTaskName": true,
             "isBuildCommand": false,
-            "isWatching": false,
+            "isBackground": false,
             "args": [
                 "node",
                 "--debug-brk",
