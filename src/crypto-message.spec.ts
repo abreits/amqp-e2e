@@ -5,8 +5,9 @@
 import * as Chai from "chai";
 var expect = Chai.expect;
 
-
-import CryptoMessage from "./crypto-message";
+import * as Amqp from "amqp-ts";
+import {CryptoMessage, addCryptoMessage} from "./crypto-message";
+addCryptoMessage();
 import {Key, KeyManager} from "./key-manager";
 
 const testData = Buffer.from("This is a small line of text to test encryption and decryption");
@@ -19,13 +20,13 @@ testKeyManager.setEncryptionKey(testKey1ActivateOn);
 /* istanbul ignore next */
 describe("Test crypto-message module", () => {
     it("should 'encrypt' and 'decrypt' a message with a random iv and simple key", () => {
-        const cryptoMsg = new CryptoMessage(testData);
+        const cryptoMsg = new Amqp.Message(testData) as CryptoMessage;
         cryptoMsg.encrypt(testKey);
         cryptoMsg.decrypt(testKey);
         expect(cryptoMsg.content).to.deep.equal(testData);
     });
     it("Tampered messages should throw an error", () => {
-        const cryptoMsg = new CryptoMessage(testData);
+        const cryptoMsg = new Amqp.Message(testData) as CryptoMessage;
         cryptoMsg.encrypt(testKey);
         // change value at location 45
         let oldValue = cryptoMsg.content[45];
@@ -43,7 +44,7 @@ describe("Test crypto-message module", () => {
         throw new Error("No error thrown");
     });
     it("should 'encrypt' and 'decrypt' a message with a random iv and key manager", () => {
-        const cryptoMsg = new CryptoMessage(testData);
+        const cryptoMsg = new Amqp.Message(testData) as CryptoMessage;
         cryptoMsg.encrypt(testKeyManager);
         cryptoMsg.decrypt(testKeyManager);
         expect(cryptoMsg.content).to.deep.equal(testData);

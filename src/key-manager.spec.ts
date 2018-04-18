@@ -31,6 +31,8 @@ describe("Test crypto-message module", () => {
             expect(key.id.length).to.equal(8);
             expect(key.created).to.be.a.instanceof(Date);
             // expect the key to be added to the keymanager
+            // console.log("");
+            // console.log(key.key.toString("hex"));
             expect(km.get(key.id)).to.equal(key);
         });
         it("should export a simple key", () => {

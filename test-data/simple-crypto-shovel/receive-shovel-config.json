@@ -1,0 +1,24 @@
+{
+    "key": "5d999a80f53e7957aef724d7881776ad969467c8c9574dd15c01e4bcca8afa74",
+    "encrypt": false,
+    "from": {
+        "connectionUrl": "amqp://open_amqp",
+        "connection": {
+            "exchange": "simple-encrypted-exchange",
+            "exchangeType": "fanout",
+            "options": {
+                "autoDelete": true
+            }
+        }
+    },
+    "to": {
+        "connectionUrl": "amqp://open_amqp",
+        "connection": {
+            "exchange": "simple-dest-exchange",
+            "exchangeType": "fanout",
+            "options": {
+                "autoDelete": true
+            }
+        }
+    }
+}
