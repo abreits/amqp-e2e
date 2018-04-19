@@ -6,7 +6,6 @@
         "noImplicitAny": false,
         "moduleResolution": "node",
         "sourceMap": true,
-        "types" : ["node", "core-js"],
         "outDir": "dist",
         "baseUrl": ".",
         "paths": {
