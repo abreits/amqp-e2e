@@ -33,7 +33,7 @@ describe("Test the Key class", () => {
         expect(key.export()).to.equal("{\"k\":\"a9ITQAFpNi+wJqrw4n7SznGJ3rtACO1GoX8iYUHke+8=\",\"c\":1523697157207}");
     });
     it("should export a complete key", () => {
-        const key = Key.create();
+        const key = new Key();
 
         // make a constant key for testing purposes
         key.id = Buffer.from("bUcmwfgbWhE=", "base64");
@@ -49,7 +49,7 @@ describe("Test the Key class", () => {
             "\"c\":1523697157207}");
     });
     it("should import an exported key", () => {
-        const key = Key.create();
+        const key = new Key();
 
         // make a constant key for testing purposes
         key.id = Buffer.from("bUcmwfgbWhE=", "base64");
