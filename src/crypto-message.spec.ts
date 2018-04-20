@@ -6,10 +6,10 @@ import * as Chai from "chai";
 var expect = Chai.expect;
 
 import * as Amqp from "amqp-ts";
-import {CryptoMessage, addCryptoMessage} from "./crypto-message";
+import { CryptoMessage, addCryptoMessage } from "./crypto-message";
 addCryptoMessage();
-import {Key} from "./key";
-import {KeyManager} from "./key-manager";
+import { Key } from "./key";
+import { KeyManager } from "./key-manager";
 
 const testData = Buffer.from("This is a small line of text to test encryption and decryption");
 const testKey = Key.create();
@@ -35,7 +35,7 @@ describe("Test crypto-message module", () => {
         let oldValue = cryptoMsg.content[45];
         let newValue = oldValue;
         while (newValue === oldValue) {
-            newValue = Math.floor(Math.random()*255);
+            newValue = Math.floor(Math.random() * 255);
             cryptoMsg.content.writeUInt8(newValue, 45);
         }
         try {
@@ -51,5 +51,25 @@ describe("Test crypto-message module", () => {
         cryptoMsg.encrypt(testKeyManager);
         cryptoMsg.decrypt(testKeyManager);
         expect(cryptoMsg.content).to.deep.equal(testData);
+    });
+    it("'encrypt' and 'decrypt' should hide and restore message properties/options", () => {
+        const props = {
+            type: "testMsg"
+        };
+        const cryptoMsg = new Amqp.Message(testData) as CryptoMessage;
+        cryptoMsg.properties = props;
+        cryptoMsg.encrypt(testKeyManager);
+        expect(cryptoMsg.properties).to.deep.equal({});
+        cryptoMsg.decrypt(testKeyManager);
+        expect(cryptoMsg.properties).to.deep.equal(props);
+    });
+    it("'encrypt' and 'decrypt' should hide and restore message routing-key", () => {
+        const routingKey = "test.routing.key";
+        const cryptoMsg = new Amqp.Message(testData) as CryptoMessage;
+        cryptoMsg.fields = { routingKey: routingKey };
+        cryptoMsg.encrypt(testKeyManager);
+        expect(cryptoMsg.fields).to.be.undefined;
+        //cryptoMsg.decrypt(testKeyManager);
+        expect(cryptoMsg.decrypt(testKeyManager)).to.deep.equal(routingKey);
     });
 });

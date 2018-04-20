@@ -69,8 +69,8 @@ export class SimpleCryptoShovel {
     }
 
     protected decryptAndSend = (message: CryptoMessage) => {
-        message.decrypt(this.currentKey);
-        this.to.send(message);
+        const routingKey = message.decrypt(this.currentKey);
+        this.to.send(message, routingKey);
     }
 }
 

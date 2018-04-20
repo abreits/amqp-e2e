@@ -12,10 +12,12 @@ import { SimpleCryptoShovel } from "./simple-crypto-shovel";
 
 // define test defaults
 const ConnectionUrl = "amqp://open_amqp";
-const UnitTestTimeout = 3000;
+const UnitTestTimeout = 1500;
 const LogLevel = process.env.AMQPTEST_LOGLEVEL || "critical";
 const configFolder = path.join(__dirname, "../test-data/simple-crypto-shovel/");
 const testMsg = "This message should get through, at least I very much hope it will!!!";
+const testRoutingKey = "test.routing.key";
+
 // set logging level
 Amqp.log.transports.console.level = LogLevel;
 
@@ -48,6 +50,7 @@ describe("Test SimpleCryptoShovel class", function () {
         // this function should receive the decrypted message
         function receiver(msg: Amqp.Message) {
             expect(msg.getContent()).to.equal(testMsg);
+            expect(msg.fields.routingKey).to.equal(testRoutingKey);
             done();
         }
 
@@ -66,8 +69,8 @@ describe("Test SimpleCryptoShovel class", function () {
             // workaround: receive.activateConsumer appears to need some extra time to set up?
             setTimeout(() => {
                 const msg = new Amqp.Message(testMsg);
-                msg.sendTo(send);
-            }, 20);
+                msg.sendTo(send, testRoutingKey);
+            }, 50);
         });
     });
 });

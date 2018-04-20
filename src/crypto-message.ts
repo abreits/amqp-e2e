@@ -45,24 +45,34 @@ export function addCryptoMessage() {
  * Encrypt data with given key into an encryptedMessage
  * @param key string | Buffer encryption key
  * @param initialisationVector string, optional, when provided must be unique for each call to prevent same data creating same encrypted message
- * @returns cryptoMessage, a Buffer with the encrypted message content
+ * @returns void (used as a CryptoMessage method)
  */
 function encrypt(using: Key | KeyManager) {
     const key = (using instanceof Key) ? using : using.getEncryptionKey();
-    const data = this.content;
+
+    // also encrypt message properties
+    const metadata = Buffer.from(JSON.stringify({
+        p: this.properties,
+        r: this.fields ? this.fields.routingKey : undefined
+    }), "utf8");
+    const metadataSize = Buffer.allocUnsafe(2);
+    metadataSize.writeInt16LE(metadata.length, 0);
+    const data = Buffer.concat([metadataSize, metadata, this.content]);
     const iv = crypto.randomBytes(IV_LENGTH);
     const cipher = crypto.createCipheriv("aes-256-gcm", key.key, iv);
     const encryptedData = Buffer.concat([cipher.update(data), cipher.final()]);
     const tag = cipher.getAuthTag();
-    const msgElements = (using instanceof Key) ? [iv, tag, encryptedData] : [key.id, iv, tag, encryptedData];
+    const msgElements = (using instanceof Key) ?  [iv, tag, encryptedData] : [key.id, iv, tag, encryptedData];
     const encryptedMessage = Buffer.concat(msgElements);
     this.content = encryptedMessage;
+    this.properties = {};
+    this.fields = undefined;
 }
 
 /**
  * Decrypt an encryptedMessage to data with given key
  * @param key string | Buffer encryption key
- * @returns data, a Buffer with the decrypted message content
+ * @returns routingKey, if there is one
  */
 function decrypt(using: Key | KeyManager) {
     let offset = 0;
@@ -84,8 +94,15 @@ function decrypt(using: Key | KeyManager) {
     const encryptedData = encryptedMessage.slice(offset);
     const decipher = crypto.createDecipheriv("aes-256-gcm", key.key, iv);
     decipher.setAuthTag(tag);
-    const data = Buffer.concat([decipher.update(encryptedData), decipher.final()]);
+    const decryptedBuf = Buffer.concat([decipher.update(encryptedData), decipher.final()]);
+    const metadataSize = decryptedBuf.readInt16LE(0);
+    const metadataString = decryptedBuf.toString("utf8", 2, metadataSize + 2);
+    const metadata = JSON.parse(metadataString);
+    this.properties = metadata.p;
+    const data = decryptedBuf.slice(metadataSize + 2);
     this.content = data;
+
+    return metadata.r;
 }
 
 export default CryptoMessage;
