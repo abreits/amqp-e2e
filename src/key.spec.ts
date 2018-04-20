@@ -7,6 +7,7 @@ import * as Chai from "chai";
 var expect = Chai.expect;
 
 import { Key } from "./key";
+import { KEY_LENGTH } from "./crypto-message";
 
 // dat computation constants for tests
 const now = Date.now();
@@ -18,7 +19,7 @@ describe("Test the Key class", () => {
     it("should create a simple key", () => {
         const key = Key.create();
 
-        expect(key.key.length).to.equal(32);
+        expect(key.key.length).to.equal(KEY_LENGTH);
         expect(key.id).to.not.exist;
         expect(key.created).to.be.a.instanceof(Date);
     });

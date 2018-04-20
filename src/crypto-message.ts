@@ -5,7 +5,7 @@ import * as crypto from "crypto";
 import * as Amqp from "amqp-ts";
 
 import { Key } from "./key";
-import { KeyManager } from "./key-manager";
+import { KeyManager, KEYID_LENGTH } from "./key-manager";
 
 /* encrypted message format with AES-256-GCM:
  * [8 bytes keyId (optional)][16 bytes initialisationVector][16 bytes tag][encryptedData]
@@ -13,11 +13,9 @@ import { KeyManager } from "./key-manager";
  * - initialisationVector: needed for the decryption of the encryptedData
  * - encryptedData: data to be decrypted
  */
-// these consts are also defined in the key and key-manager class for the moment
-const KEYID_LENGTH = 8;
 const IV_LENGTH = 16;
 const TAG_LENGTH = 16;
-const KEY_LENGTH = 32;
+export const KEY_LENGTH = 32;
 
 /**
  *  extend Amqp.Message class to support encryption

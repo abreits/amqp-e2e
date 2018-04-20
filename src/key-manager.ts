@@ -6,7 +6,7 @@ import * as fs from "fs";
 
 import { Key } from "./key";
 
-const KEYID_LENGTH = 8;
+export const KEYID_LENGTH = 8;
 
 type PersistFormat = {
     l: string[],

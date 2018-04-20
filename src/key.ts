@@ -4,7 +4,7 @@
 import * as crypto from "crypto";
 import * as fs from "fs";
 
-const KEY_LENGTH = 32;
+import { KEY_LENGTH } from "./crypto-message";
 
 /**
  *  key class, defines a new key and initializes it with a random key and id
