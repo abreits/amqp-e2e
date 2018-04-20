@@ -72,4 +72,16 @@ describe("Test crypto-message module", () => {
         //cryptoMsg.decrypt(testKeyManager);
         expect(cryptoMsg.decrypt(testKeyManager)).to.deep.equal(routingKey);
     });
+    it("'encrypt metadata should not exceed 64K", () => {
+        const routingKey = Buffer.alloc(66000);
+        const cryptoMsg = new Amqp.Message(testData) as CryptoMessage;
+        cryptoMsg.fields = { routingKey: routingKey };
+        try {
+            cryptoMsg.encrypt(testKeyManager);
+        } catch (e) {
+            expect(e.message).to.equal("Metadata too large (>64K)");
+            return;
+        }
+        throw new Error("No error thrown");
+    });
 });

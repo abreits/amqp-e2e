@@ -56,7 +56,10 @@ function encrypt(using: Key | KeyManager) {
         r: this.fields ? this.fields.routingKey : undefined
     }), "utf8");
     const metadataSize = Buffer.allocUnsafe(2);
-    metadataSize.writeInt16LE(metadata.length, 0);
+    if(metadata.length > 65535) {
+        throw new Error("Metadata too large (>64K)");
+    }
+    metadataSize.writeUInt16LE(metadata.length, 0);
     const data = Buffer.concat([metadataSize, metadata, this.content]);
     const iv = crypto.randomBytes(IV_LENGTH);
     const cipher = crypto.createCipheriv("aes-256-gcm", key.key, iv);
@@ -95,7 +98,7 @@ function decrypt(using: Key | KeyManager) {
     const decipher = crypto.createDecipheriv("aes-256-gcm", key.key, iv);
     decipher.setAuthTag(tag);
     const decryptedBuf = Buffer.concat([decipher.update(encryptedData), decipher.final()]);
-    const metadataSize = decryptedBuf.readInt16LE(0);
+    const metadataSize = decryptedBuf.readUInt16LE(0);
     const metadataString = decryptedBuf.toString("utf8", 2, metadataSize + 2);
     const metadata = JSON.parse(metadataString);
     this.properties = metadata.p;
