@@ -5,7 +5,7 @@
 import * as fs from "fs";
 import * as Amqp from "amqp-ts";
 import { AmqpConnection, ConnectionDefinition, ExchangeDefinition, QueueDefinition } from "./amqp-connection";
-import { Key } from "./key-manager";
+import { Key } from "./key";
 import { CryptoMessage, addCryptoMessage } from "./crypto-message";
 addCryptoMessage();
 
@@ -34,7 +34,7 @@ export class SimpleCryptoShovel {
 
         this.fromConfig = config.from;
         this.toConfig = config.to;
-        this.currentKey = new Key(null, Buffer.from(config.key, "hex"));
+        this.currentKey = Key.create(Buffer.from(config.key, "hex"));
         this.encrypts = config.encrypts;
     }
 
@@ -52,7 +52,7 @@ export class SimpleCryptoShovel {
         return Promise.all([
             this.from.close(),
             this.to.close()
-         ]);
+        ]);
 
     }
 
@@ -60,7 +60,7 @@ export class SimpleCryptoShovel {
         return Promise.all([
             this.from.connection.initialized,
             this.to.connection.initialized
-         ]);
+        ]);
     }
 
     protected encryptAndSend = (message: CryptoMessage) => {

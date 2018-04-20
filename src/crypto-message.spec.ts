@@ -8,13 +8,16 @@ var expect = Chai.expect;
 import * as Amqp from "amqp-ts";
 import {CryptoMessage, addCryptoMessage} from "./crypto-message";
 addCryptoMessage();
-import {Key, KeyManager} from "./key-manager";
+import {Key} from "./key";
+import {KeyManager} from "./key-manager";
 
 const testData = Buffer.from("This is a small line of text to test encryption and decryption");
-const testKey = new Key();
+const testKey = Key.create();
 const testKeyManager = new KeyManager();
-const testKey1ActivateOn = new Key(testKeyManager);
-const testKey2ActivateOn = new Key(testKeyManager);
+const testKey1ActivateOn = Key.create();
+const testKey2ActivateOn = Key.create();
+testKeyManager.add(testKey1ActivateOn);
+testKeyManager.add(testKey2ActivateOn);
 testKeyManager.setEncryptionKey(testKey1ActivateOn);
 
 /* istanbul ignore next */

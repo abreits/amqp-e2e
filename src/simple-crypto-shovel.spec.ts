@@ -67,7 +67,7 @@ describe("Test SimpleCryptoShovel class", function () {
             setTimeout(() => {
                 const msg = new Amqp.Message(testMsg);
                 msg.sendTo(send);
-            }, 10);
+            }, 20);
         });
     });
 });

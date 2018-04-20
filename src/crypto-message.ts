@@ -1,9 +1,11 @@
 /* crypto-message.ts ** extend Amqp.Message class to support encryption
  * 2018-04-11 ** by Ab Reitsma
  */
-import { Key, KeyManager } from "./key-manager";
 import * as crypto from "crypto";
 import * as Amqp from "amqp-ts";
+
+import { Key } from "./key";
+import { KeyManager } from "./key-manager";
 
 /* encrypted message format with AES-256-GCM:
  * [8 bytes keyId (optional)][16 bytes initialisationVector][16 bytes tag][encryptedData]
@@ -11,7 +13,7 @@ import * as Amqp from "amqp-ts";
  * - initialisationVector: needed for the decryption of the encryptedData
  * - encryptedData: data to be decrypted
  */
-// these consts are also defined in the key-manager class for the moment
+// these consts are also defined in the key and key-manager class for the moment
 const KEYID_LENGTH = 8;
 const IV_LENGTH = 16;
 const TAG_LENGTH = 16;
