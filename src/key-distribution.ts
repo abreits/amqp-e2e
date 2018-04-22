@@ -20,34 +20,6 @@ import { AmqpConnection } from "./amqp-connection";
  * Public keys of all receivers added to receiver configuration file (json)
  */
 
-/*
- * configuration file format
- *
- */
-interface DefinedEndpoint {
-    name: string; // name of the sender/receiver, should be unique
-    connection: AmqpConnection;
-    publicKeyFile: string; // filename of the file containing the public key in PEM format
-    privateKeyFile: string; // filename of the file containing the private key in PEM format
-}
-
-interface ReferencedEndpoint {
-    name: string; // name of the sender/receiver, should be unique
-    publicKeyFile: string; // filename of the file containing the public key in PEM format
-    startDate?: Date; // if not defined always start
-    endDate?: Date; // if not defined keeps running
-}
-
-interface KeyDistributorConfiguration {
-    sender: DefinedEndpoint;
-    receivers: [ReferencedEndpoint];
-}
-
-interface KeyReceiverConfiguration {
-    sender: ReferencedEndpoint;
-    receiver: DefinedEndpoint;
-}
-
 /* process for receiver:
  *  message receive loop:
  *      - if message contains encryption key for me
@@ -106,18 +78,140 @@ interface KeyReceiverConfiguration {
  *
  */
 
-export class KeyReceiver {
-    privateKey: string; // for receiver to decrypt sent keys
-    publicKey: string; // for sender to encrypt ket and key-id
-    publicKeySender: string; // for receiver to authenticate sender
+interface DefinedEndpoint {
+    name: string; // name of the sender/receiver, should be unique
+    connection: AmqpConnection;
+    publicKeyFile: string; // filename of the file containing the public key in PEM format
+    privateKeyFile: string; // filename of the file containing the private key in PEM format
 }
 
-export class KeySender {
-    keyManager: KeyManager;
-    privateKey: string; // to sign
-    keyReceivers: KeyReceiver[];
-    keyChangeInterval: number; // in ms interval to change encryption key
-    keyNotifyPeriod: number; // in ms, period in which to send new key to all recepients it activates
-    keyNotifications: number; // number of times the key must be sent to a recepient before it activates
+interface EndpointDefinition {
+    name: string; // name of the sender/receiver, should be unique
+    publicKeyFile: string; // filename of the file containing the public key in PEM format
+    startDate?: string | number; // UTC date-time, if not defined always start
+    endDate?: string | number; // UTC date-time, if not defined keeps running
+}
 
+class ReferencedEndpoint {
+    static keyDirectory = "";
+
+    name: string; // name of the sender/receiver, should be unique
+    publicKey: string; // contains the public key in PEM format
+    startDate?: Date; // if not defined always start
+    endDate?: Date; // if not defined keeps running
+
+    constructor(definition: EndpointDefinition) {
+        if (!definition.name) {
+            throw new Error("No name defined");
+        } else {
+            this.name = definition.name;
+        }
+        try {
+            this.publicKey = fs.readFileSync(definition.publicKeyFile, "utf8");
+        } catch {
+            throw new Error("Error reading public key file");
+        }
+        if (definition.startDate) {
+            try {
+                this.startDate = new Date(definition.startDate);
+            } catch {
+                throw new Error("Illegal startDate defined");
+            }
+        }
+        if (definition.endDate) {
+            try {
+                this.endDate = new Date(definition.endDate);
+            } catch {
+                throw new Error("Illegal endDate defined");
+            }
+        }
+    }
+}
+
+export class KeyDistributor {
+    //semi constants
+    protected sender: DefinedEndpoint;
+    protected newKeyNotifyPeriod = 3600000; //period in which to send the new keys to the receivers in ms (default 1 hour)
+    protected newKeyNotifyRepetitons = 1;
+    protected keyRotationPeriod = 24 * 3600000; //force new key to be used after .. ms, default every 24 hours, 0 is never
+    protected receiverDefinitionFile: string; // path to the receiver definition json file
+
+    protected receivers: { [name: string]: ReferencedEndpoint } = {};
+    protected activeReceivers: { [name: string]: ReferencedEndpoint } = {};
+
+    protected activeKey: Key;
+    protected activeKeyChangeTime: Date;
+
+    protected nextKey: Key;
+    protected nextKeyReceived: { [name: string]: ReferencedEndpoint };
+    protected nextKeyNotReceived: { [name: string]: ReferencedEndpoint };
+
+    protected timer: any;
+
+    updateActiveReceivers() {
+        const now = new Date();
+        this.activeReceivers = {};
+        for (let name in this.receivers) {
+            const receiver = this.receivers[name];
+            if (
+                (!receiver.startDate || receiver.startDate < now) &&
+                (!receiver.endDate || receiver.endDate > now)
+            ) {
+                this.activeReceivers[name] = receiver;
+            }
+        }
+    }
+
+    processReceiverConfigFile() {
+        const newReceivers: { [name: string]: ReferencedEndpoint } = {};
+        try {
+            const receiverDefinitionString = fs.readFileSync(this.receiverDefinitionFile, "utf8");
+            const receiverDefinitions = JSON.parse(receiverDefinitionString) as EndpointDefinition[];
+            for (let i = 0; i < receiverDefinitions.length; i += 1 ) {
+                const receiver = new ReferencedEndpoint(receiverDefinitions[i]);
+                if (newReceivers[receiver.name]) {
+                    throw new Error("Receiver name defined mor than once");
+                } else {
+                    newReceivers[receiver.name] = receiver;
+                }
+            }
+        } catch {
+            //todo: log error parsing receiver config file
+        }
+        // save old status for comparison
+        const oldReceivers = this.receivers;
+        const oldActiveReceivers = this.activeReceivers;
+        this.receivers = newReceivers;
+        this.updateActiveReceivers();
+
+        // check if we are updating keys at the moment
+        if (this.nextKey) {
+            // check if we have already updated receivers that are no longer defined or active
+            for (let name in this.nextKeyReceived) {
+                if(!this.activeReceivers[name]) {
+                    // found a receiver that no longer is active: force distribution of new keys
+                    this.nextKey = null; // create new key!
+                    this.activeKeyChangeTime = new Date(); // change is now!
+                    clearTimeout(this.timer);
+                    this.timer = setImmediate(this.onTimeout);
+                    return;
+                }
+            }
+            // compute new nextKeyNotReceived and force rest to be done now
+            this.nextKeyNotReceived = {};
+            for (let name in this.activeReceivers) {
+                if(!this.nextKeyReceived[name]) {
+                    this.nextKeyNotReceived[name] = this.activeReceivers[name];
+                }
+            }
+            this.activeKeyChangeTime = new Date(); // change is now
+            clearTimeout(this.timer);
+            this.timer = setImmediate(this.onTimeout);
+            return;
+        }
+    }
+
+    onTimeout = () => {
+        //todo
+    }
 }
