@@ -19,7 +19,7 @@ export class Key {
     created: Date;
 
     private toEncrypt: Buffer;
-    private signed: Buffer;
+    private sign: Buffer;
 
     static create(key?: Buffer, id?: Buffer, created?: Date) {
         let newKey = new Key();
@@ -59,6 +59,7 @@ export class Key {
     }
 
     encrypt(publicKey: string, privateKey: string) {
+        // only collect the content to encrypt once for all receivers
         if (!this.toEncrypt) {
             // should have a key and an id
             if (!this.id || !this.key) {
@@ -68,13 +69,16 @@ export class Key {
             activateOff.writeDoubleLE((this.activateOff ? this.activateOff : MAX_DATE).getTime(), 0);
             this.toEncrypt = Buffer.concat([activateOff, this.key, this.id]);
         }
-        if (!this.signed) {
-            const sign = crypto.createSign("SHA256");
-            sign.update(this.toEncrypt);
-            this.signed = sign.sign(privateKey);
+        // only compute the sign for the content to encrypt once for all receivers
+        if (!this.sign) {
+            const signer = crypto.createSign("SHA256");
+            signer.update(this.toEncrypt);
+            this.sign = signer.sign(privateKey);
         }
         const encrypted = crypto.publicEncrypt(publicKey, this.toEncrypt);
-        return (Buffer.concat([encrypted, this.signed]));
+        const encryptedSize = Buffer.allocUnsafe(2);
+        encryptedSize.writeUInt16LE(encrypted.length, 0);
+        return (Buffer.concat([encryptedSize, encrypted, this.sign]));
     }
 
     /**
@@ -82,14 +86,15 @@ export class Key {
      */
     flushEncrypt() {
         this.toEncrypt = null;
-        this.signed = null;
+        this.sign = null;
     }
 
     static decrypt(encrypted: Buffer, privateKey: string, publicKey: string) {
-        const decrypted = crypto.privateDecrypt(privateKey, encrypted.slice(0, 256));
+        const encryptedSize = encrypted.readUInt16LE(0);
+        const decrypted = crypto.privateDecrypt(privateKey, encrypted.slice(2, encryptedSize + 2));
         const verify = crypto.createVerify("SHA256");
         verify.update(decrypted);
-        if(verify.verify(publicKey, encrypted.slice(256))) {
+        if(verify.verify(publicKey, encrypted.slice(encryptedSize + 2))) {
             const key = new Key();
             key.activateOff = new Date(decrypted.readDoubleLE(0));
             key.key = decrypted.slice(8, 40);
