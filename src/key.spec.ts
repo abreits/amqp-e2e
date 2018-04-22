@@ -3,16 +3,24 @@
  * Created by Ab on 2018-04-16.
  */
 import * as fs from "fs";
+import * as path from "path";
 import * as Chai from "chai";
 var expect = Chai.expect;
 
 import { Key } from "./key";
 import { KEY_LENGTH } from "./crypto-message";
 
-// dat computation constants for tests
+// date computation constants for tests
 const now = Date.now();
 const day = 24 * 60 * 60 * 1000;
 const today = new Date().getDate();
+
+// read rsa keys for tests
+const rsaPath = path.join(__dirname, "../test-data/rsa-keys");
+const senderPrivateKey = fs.readFileSync(path.join(rsaPath, "sender.private"), "utf8");
+const senderPublicKey = fs.readFileSync(path.join(rsaPath, "sender.public"), "utf8");
+const receiverPrivateKey = fs.readFileSync(path.join(rsaPath, "receiver1.private"), "utf8");
+const receiverPublicKey = fs.readFileSync(path.join(rsaPath, "receiver1.public"), "utf8");
 
 /* istanbul ignore next */
 describe("Test the Key class", () => {
@@ -62,5 +70,51 @@ describe("Test the Key class", () => {
         const importedKey = Key.import(keyExport);
 
         expect(importedKey).to.deep.equal(key);
+    });
+    it("should not encrypt a key missing key and id", () => {
+        const key = new Key();
+
+        try {
+            key.encrypt(receiverPublicKey, senderPrivateKey);
+        } catch (e) {
+            expect(e.message).to.equal("Trying to encrypt incomplete Key");
+            return;
+        }
+        throw new Error("key.encrypt(...) should throw an error");
+    });
+    it("should not encrypt a key missing key", () => {
+        const key = new Key();
+        key.id = Buffer.from("bUcmwfgbWhE=", "base64");
+
+        try {
+            key.encrypt(receiverPublicKey, senderPrivateKey);
+        } catch (e) {
+            expect(e.message).to.equal("Trying to encrypt incomplete Key");
+            return;
+        }
+        throw new Error("key.encrypt(...) should throw an error");
+    });
+    it("should not encrypt a key missing id", () => {
+        const key = Key.create();
+
+        try {
+            key.encrypt(receiverPublicKey, senderPrivateKey);
+        } catch (e) {
+            expect(e.message).to.equal("Trying to encrypt incomplete Key");
+            return;
+        }
+        throw new Error("key.encrypt(...) should throw an error");
+    });
+    it("should encrypt a key and decrypt a key", () => {
+        const key = Key.create();
+        key.id = Buffer.from("bUcmwfgbWhE=", "base64");
+        key.activateOff = new Date(1524043365337);
+
+        const encryptedKey = key.encrypt(receiverPublicKey, senderPrivateKey);
+        const decryptedKey = Key.decrypt(encryptedKey, receiverPrivateKey, senderPublicKey);
+
+        expect(decryptedKey.activateOff).to.deep.equal(key.activateOff);
+        expect(decryptedKey.key).to.deep.equal(key.key);
+        expect(decryptedKey.id).to.deep.equal(key.id);
     });
 });

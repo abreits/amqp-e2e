@@ -9,7 +9,7 @@ var merge = require("merge2");
 var ts = require("gulp-typescript");
 var tslint = require("gulp-tslint");
 var sourcemaps = require("gulp-sourcemaps");
-var mocha = require("gulp-mocha");
+var mocha = require("gulp-spawn-mocha");
 
 // swallow errors in watch
 function swallowError (error) {
