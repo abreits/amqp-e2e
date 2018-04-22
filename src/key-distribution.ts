@@ -9,20 +9,44 @@ import * as path from "path";
 import { KEY_LENGTH } from "./crypto-message";
 import { Key } from "./key";
 import { KeyManager, KEYID_LENGTH } from "./key-manager";
-
-/*
- * key message format:
- * [[key][key_id][activeUntil] encrypted with public key of receiver][Signed Hash of [key][key_id]]
- */
+import { AmqpConnection } from "./amqp-connection";
 
 /*
  * Only once:
- * No password RSA private and public key generated on sender
- * No password RSA private and public key generated on each receiver
+ * Passwordless RSA private and public key generated on sender
+ * Passwordless RSA private and public key generated on each receiver
  *
  * Public key sender distributed safely to each receiver
  * Public keys of all receivers added to receiver configuration file (json)
  */
+
+/*
+ * configuration file format
+ *
+ */
+interface DefinedEndpoint {
+    name: string; // name of the sender/receiver, should be unique
+    connection: AmqpConnection;
+    publicKeyFile: string; // filename of the file containing the public key in PEM format
+    privateKeyFile: string; // filename of the file containing the private key in PEM format
+}
+
+interface ReferencedEndpoint {
+    name: string; // name of the sender/receiver, should be unique
+    publicKeyFile: string; // filename of the file containing the public key in PEM format
+    startDate?: Date; // if not defined always start
+    endDate?: Date; // if not defined keeps running
+}
+
+interface KeyDistributorConfiguration {
+    sender: DefinedEndpoint;
+    receivers: [ReferencedEndpoint];
+}
+
+interface KeyReceiverConfiguration {
+    sender: ReferencedEndpoint;
+    receiver: DefinedEndpoint;
+}
 
 /* process for receiver:
  *  message receive loop:
