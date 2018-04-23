@@ -1,5 +1,5 @@
 /**
- * Tests for ket-manager
+ * Tests for key class
  * Created by Ab on 2018-04-16.
  */
 import * as fs from "fs";
@@ -7,6 +7,7 @@ import * as path from "path";
 import * as Chai from "chai";
 var expect = Chai.expect;
 
+import { RsaKey } from "./rsa-key";
 import { Key } from "./key";
 import { KEY_LENGTH } from "./crypto-message";
 
@@ -19,8 +20,10 @@ const today = new Date().getDate();
 const rsaPath = path.join(__dirname, "../test-data/rsa-keys");
 const senderPrivateKey = fs.readFileSync(path.join(rsaPath, "sender.private"), "utf8");
 const senderPublicKey = fs.readFileSync(path.join(rsaPath, "sender.public"), "utf8");
+const senderKey = new RsaKey(senderPublicKey, senderPrivateKey);
 const receiverPrivateKey = fs.readFileSync(path.join(rsaPath, "receiver1.private"), "utf8");
 const receiverPublicKey = fs.readFileSync(path.join(rsaPath, "receiver1.public"), "utf8");
+const receiverKey = new RsaKey(receiverPublicKey, receiverPrivateKey);
 
 /* istanbul ignore next */
 describe("Test the Key class", () => {
@@ -75,7 +78,7 @@ describe("Test the Key class", () => {
         const key = new Key();
 
         try {
-            key.encrypt(receiverPublicKey, senderPrivateKey);
+            key.encrypt(receiverKey, senderKey);
         } catch (e) {
             expect(e.message).to.equal("Trying to encrypt incomplete Key");
             return;
@@ -87,7 +90,7 @@ describe("Test the Key class", () => {
         key.id = Buffer.from("bUcmwfgbWhE=", "base64");
 
         try {
-            key.encrypt(receiverPublicKey, senderPrivateKey);
+            key.encrypt(receiverKey, senderKey);
         } catch (e) {
             expect(e.message).to.equal("Trying to encrypt incomplete Key");
             return;
@@ -98,7 +101,7 @@ describe("Test the Key class", () => {
         const key = Key.create();
 
         try {
-            key.encrypt(receiverPublicKey, senderPrivateKey);
+            key.encrypt(receiverKey, senderKey);
         } catch (e) {
             expect(e.message).to.equal("Trying to encrypt incomplete Key");
             return;
@@ -110,8 +113,8 @@ describe("Test the Key class", () => {
         key.id = Buffer.from("bUcmwfgbWhE=", "base64");
         key.activateOff = new Date(1524043365337);
 
-        const encryptedKey = key.encrypt(receiverPublicKey, senderPrivateKey);
-        const decryptedKey = Key.decrypt(encryptedKey, receiverPrivateKey, senderPublicKey);
+        const encryptedKey = key.encrypt(receiverKey, senderKey);
+        const decryptedKey = Key.decrypt(encryptedKey, receiverKey, senderKey);
 
         expect(decryptedKey.activateOff).to.deep.equal(key.activateOff);
         expect(decryptedKey.key).to.deep.equal(key.key);

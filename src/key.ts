@@ -4,6 +4,7 @@
 import * as crypto from "crypto";
 import * as fs from "fs";
 
+import { RsaKey } from "./rsa-key";
 import { KEY_LENGTH } from "./crypto-message";
 
 const MAX_DATE = new Date(8640000000000000);
@@ -58,7 +59,7 @@ export class Key {
         return s;
     }
 
-    encrypt(publicKey: string, privateKey: string) {
+    encrypt(encryptKey: RsaKey, signKey: RsaKey) {
         // only collect the content to encrypt once for all receivers
         if (!this.toEncrypt) {
             // should have a key and an id
@@ -73,9 +74,9 @@ export class Key {
         if (!this.sign) {
             const signer = crypto.createSign("SHA256");
             signer.update(this.toEncrypt);
-            this.sign = signer.sign(privateKey);
+            this.sign = signer.sign(signKey.privatePem);
         }
-        const encrypted = crypto.publicEncrypt(publicKey, this.toEncrypt);
+        const encrypted = crypto.publicEncrypt(encryptKey.publicPem, this.toEncrypt);
         const encryptedSize = Buffer.allocUnsafe(2);
         encryptedSize.writeUInt16LE(encrypted.length, 0);
         return (Buffer.concat([encryptedSize, encrypted, this.sign]));
@@ -89,12 +90,12 @@ export class Key {
         this.sign = null;
     }
 
-    static decrypt(encrypted: Buffer, privateKey: string, publicKey: string) {
+    static decrypt(encrypted: Buffer, decryptKey: RsaKey, verifyKey: RsaKey) {
         const encryptedSize = encrypted.readUInt16LE(0);
-        const decrypted = crypto.privateDecrypt(privateKey, encrypted.slice(2, encryptedSize + 2));
+        const decrypted = crypto.privateDecrypt(decryptKey.privatePem, encrypted.slice(2, encryptedSize + 2));
         const verify = crypto.createVerify("SHA256");
         verify.update(decrypted);
-        if(verify.verify(publicKey, encrypted.slice(encryptedSize + 2))) {
+        if(verify.verify(verifyKey.publicPem, encrypted.slice(encryptedSize + 2))) {
             const key = new Key();
             key.activateOff = new Date(decrypted.readDoubleLE(0));
             key.key = decrypted.slice(8, 40);

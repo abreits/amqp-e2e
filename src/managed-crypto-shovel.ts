@@ -1,4 +1,4 @@
-/* auth-crypto-shovel.ts ** copies the RabbitMQ 'shovel' plugin functionality and adds end to end encryption
+/* managed-crypto-shovel.ts ** extension of the simple-crypto-shovel that includes
  * can also send regularly update and send new AES keys to authenticated receivers
  * 2018-04-1 by Ab Reitsma
  */
