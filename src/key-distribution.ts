@@ -10,6 +10,7 @@ import { KEY_LENGTH } from "./crypto-message";
 import { Key } from "./key";
 import { KeyManager, KEYID_LENGTH } from "./key-manager";
 import { AmqpConnection } from "./amqp-connection";
+import { RsaKey } from "./rsa-key";
 
 /*
  * Only once:
@@ -95,19 +96,17 @@ interface EndpointDefinition {
 class ReferencedEndpoint {
     static keyDirectory = "";
 
-    name: string; // name of the sender/receiver, should be unique
-    publicKey: string; // contains the public key in PEM format
+    publicKey: RsaKey; // contains the public key in PEM format
     startDate?: Date; // if not defined always start
     endDate?: Date; // if not defined keeps running
 
+    get name(): string {
+        return this.publicKey.hash.toString("hex");
+    }
+
     constructor(definition: EndpointDefinition) {
-        if (!definition.name) {
-            throw new Error("No name defined");
-        } else {
-            this.name = definition.name;
-        }
         try {
-            this.publicKey = fs.readFileSync(definition.publicKeyFile, "utf8");
+            this.publicKey = new RsaKey(fs.readFileSync(definition.publicKeyFile, "utf8"));
         } catch {
             throw new Error("Error reading public key file");
         }
@@ -136,44 +135,40 @@ export class KeyDistributor {
     protected keyRotationPeriod = 24 * 3600000; //force new key to be used after .. ms, default every 24 hours, 0 is never
     protected receiverDefinitionFile: string; // path to the receiver definition json file
 
-    protected receivers: { [name: string]: ReferencedEndpoint } = {};
-    protected activeReceivers: { [name: string]: ReferencedEndpoint } = {};
+    protected receivers: Map<string, ReferencedEndpoint> = new Map;
+    protected activeReceivers: Map<string, ReferencedEndpoint> = new Map;
 
+    protected keys: KeyManager;
     protected activeKey: Key;
     protected activeKeyChangeTime: Date;
 
     protected nextKey: Key;
-    protected nextKeyReceived: { [name: string]: ReferencedEndpoint };
-    protected nextKeyNotReceived: { [name: string]: ReferencedEndpoint };
+    protected nextKeyReceived: Map<string, ReferencedEndpoint> = new Map;
+    protected nextKeyNotReceived: Map<string, ReferencedEndpoint> = new Map;
 
     protected timer: any;
 
     updateActiveReceivers() {
         const now = new Date();
-        this.activeReceivers = {};
-        for (let name in this.receivers) {
-            const receiver = this.receivers[name];
+        this.activeReceivers.clear();
+        for (let [name, receiver] of this.receivers) {
             if (
                 (!receiver.startDate || receiver.startDate < now) &&
                 (!receiver.endDate || receiver.endDate > now)
             ) {
-                this.activeReceivers[name] = receiver;
+                this.activeReceivers.set(name, receiver);
             }
         }
     }
 
     processReceiverConfigFile() {
-        const newReceivers: { [name: string]: ReferencedEndpoint } = {};
+        const newReceivers: Map<string, ReferencedEndpoint> = new Map;
         try {
             const receiverDefinitionString = fs.readFileSync(this.receiverDefinitionFile, "utf8");
             const receiverDefinitions = JSON.parse(receiverDefinitionString) as EndpointDefinition[];
             for (let i = 0; i < receiverDefinitions.length; i += 1 ) {
                 const receiver = new ReferencedEndpoint(receiverDefinitions[i]);
-                if (newReceivers[receiver.name]) {
-                    throw new Error("Receiver name defined mor than once");
-                } else {
-                    newReceivers[receiver.name] = receiver;
-                }
+                newReceivers[receiver.name] = receiver;
             }
         } catch {
             //todo: log error parsing receiver config file
@@ -187,31 +182,57 @@ export class KeyDistributor {
         // check if we are updating keys at the moment
         if (this.nextKey) {
             // check if we have already updated receivers that are no longer defined or active
-            for (let name in this.nextKeyReceived) {
-                if(!this.activeReceivers[name]) {
+            for (let [name, receiver] of this.nextKeyReceived) {
+                if(!this.activeReceivers.get(name)) {
                     // found a receiver that no longer is active: force distribution of new keys
                     this.nextKey = null; // create new key!
-                    this.activeKeyChangeTime = new Date(); // change is now!
-                    clearTimeout(this.timer);
-                    this.timer = setImmediate(this.onTimeout);
-                    return;
+                    return this.updateNow();
                 }
             }
-            // compute new nextKeyNotReceived and force rest to be done now
-            this.nextKeyNotReceived = {};
-            for (let name in this.activeReceivers) {
-                if(!this.nextKeyReceived[name]) {
-                    this.nextKeyNotReceived[name] = this.activeReceivers[name];
+            // recompute nextKeyNotReceived
+            this.nextKeyNotReceived.clear();
+            for (let [name, receiver] of this.activeReceivers) {
+                if (!this.nextKeyReceived.get(name)) {
+                    this.nextKeyNotReceived[name] = receiver;
                 }
             }
-            this.activeKeyChangeTime = new Date(); // change is now
-            clearTimeout(this.timer);
-            this.timer = setImmediate(this.onTimeout);
-            return;
+            if (this.nextKeyNotReceived.size > 0) {
+                // new receiver now active, use same key and force rest to be done now
+                return this.updateNow();
+            }
+        } else {
+            // check if there are receivers that are no longer active
+            for (let [name, receiver] of oldActiveReceivers) {
+                if (!this.activeReceivers.get(name)) {
+                    return this.updateNow();
+                }
+            }
+            // check if there are new receivers active
+            for (let [name, receiver] of this.activeReceivers) {
+                if (!oldActiveReceivers.get(name)) {
+                    this.nextKeyNotReceived[name] = receiver;
+                }
+            }
+            if(this.nextKeyNotReceived.size > 0) {
+                // update new receivers with current keys
+                this.nextKey = this.activeKey;
+                return this.updateNow();
+            }
         }
     }
 
+    protected updateNow() {
+        this.activeKeyChangeTime = new Date();
+        clearTimeout(this.timer);
+        this.timer = setImmediate(this.onTimeout);
+        return;
+    }
+
     onTimeout = () => {
-        //todo
+        if (!this.nextKey) {
+            this.nextKey = Key.create();
+            this.keys.add(this.nextKey);
+            // todo: compute valid until for the new key
+        }
     }
 }

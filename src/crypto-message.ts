@@ -86,8 +86,7 @@ function decrypt(using: Key | KeyManager) {
         // expect msgType to be message 'M'
         const msgType = encryptedMessage.toString("utf8", offset, offset += 1);
         if(msgType !== "M") {
-            throw Error("Not an encrypted managed message");
-        }
+            throw Error("Not an encrypted managed message");        }
         // expect keyid in encrypted message
         const keyId = encryptedMessage.slice(offset, offset += KEYID_LENGTH);
         key = using.get(keyId);
