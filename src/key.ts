@@ -77,7 +77,9 @@ export class Key {
         const encrypted = encryptKey.publicEncrypt(this.toEncrypt);
         const encryptedSize = Buffer.allocUnsafe(2);
         encryptedSize.writeUInt16LE(encrypted.length, 0);
-        return (Buffer.concat([encryptedSize, encrypted, this.sign]));
+        const msgType = Buffer.from("K", "utf8");
+        const receiver = encryptKey.hash;
+        return (Buffer.concat([msgType, receiver, encryptedSize, encrypted, this.sign]));
     }
 
     /**
@@ -89,9 +91,18 @@ export class Key {
     }
 
     static decrypt(encrypted: Buffer, decryptKey: RsaKey, verifyKey: RsaKey) {
-        const encryptedSize = encrypted.readUInt16LE(0);
-        const decrypted = decryptKey.privateDecrypt(encrypted.slice(2, encryptedSize + 2));
-        if(verifyKey.verify(decrypted, encrypted.slice(encryptedSize + 2))) {
+        const msgType = encrypted.toString("utf8", 0, 1);
+        if (msgType !== "K") {
+            throw new Error("Not a key");
+        }
+        const receiver = encrypted.slice(1, 17);
+        if (receiver.compare(decryptKey.hash) !== 0) {
+            // log key not intended for this receiver
+            return null;
+        }
+        const encryptedSize = encrypted.readUInt16LE(17);
+        const decrypted = decryptKey.privateDecrypt(encrypted.slice(19, encryptedSize + 19));
+        if(verifyKey.verify(decrypted, encrypted.slice(encryptedSize + 19))) {
             const key = new Key();
             key.activateOff = new Date(decrypted.readDoubleLE(0));
             key.key = decrypted.slice(8, 40);

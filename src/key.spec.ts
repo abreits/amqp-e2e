@@ -21,10 +21,12 @@ const rsaPath = path.join(__dirname, "../test-data/rsa-keys");
 const senderPrivateKey = fs.readFileSync(path.join(rsaPath, "sender.private"), "utf8");
 const senderPublicKey = fs.readFileSync(path.join(rsaPath, "sender.public"), "utf8");
 const senderKey = new RsaKey(senderPublicKey, senderPrivateKey);
-const receiverPrivateKey = fs.readFileSync(path.join(rsaPath, "receiver1.private"), "utf8");
-const receiverPublicKey = fs.readFileSync(path.join(rsaPath, "receiver1.public"), "utf8");
-const receiverKey = new RsaKey(receiverPublicKey, receiverPrivateKey);
-
+const receiver1PrivateKey = fs.readFileSync(path.join(rsaPath, "receiver1.private"), "utf8");
+const receiver1PublicKey = fs.readFileSync(path.join(rsaPath, "receiver1.public"), "utf8");
+const receiver1Key = new RsaKey(receiver1PublicKey, receiver1PrivateKey);
+const receiver2PrivateKey = fs.readFileSync(path.join(rsaPath, "receiver2.private"), "utf8");
+const receiver2PublicKey = fs.readFileSync(path.join(rsaPath, "receiver2.public"), "utf8");
+const receiver2Key = new RsaKey(receiver2PublicKey, receiver2PrivateKey);
 /* istanbul ignore next */
 describe("Test the Key class", () => {
     it("should create a simple key", () => {
@@ -78,7 +80,7 @@ describe("Test the Key class", () => {
         const key = new Key();
 
         try {
-            key.encrypt(receiverKey, senderKey);
+            key.encrypt(receiver1Key, senderKey);
         } catch (e) {
             expect(e.message).to.equal("Trying to encrypt incomplete Key");
             return;
@@ -90,7 +92,7 @@ describe("Test the Key class", () => {
         key.id = Buffer.from("bUcmwfgbWhE=", "base64");
 
         try {
-            key.encrypt(receiverKey, senderKey);
+            key.encrypt(receiver1Key, senderKey);
         } catch (e) {
             expect(e.message).to.equal("Trying to encrypt incomplete Key");
             return;
@@ -101,7 +103,7 @@ describe("Test the Key class", () => {
         const key = Key.create();
 
         try {
-            key.encrypt(receiverKey, senderKey);
+            key.encrypt(receiver1Key, senderKey);
         } catch (e) {
             expect(e.message).to.equal("Trying to encrypt incomplete Key");
             return;
@@ -113,11 +115,30 @@ describe("Test the Key class", () => {
         key.id = Buffer.from("bUcmwfgbWhE=", "base64");
         key.activateOff = new Date(1524043365337);
 
-        const encryptedKey = key.encrypt(receiverKey, senderKey);
-        const decryptedKey = Key.decrypt(encryptedKey, receiverKey, senderKey);
+        const encryptedKey = key.encrypt(receiver1Key, senderKey);
+        const decryptedKey = Key.decrypt(encryptedKey, receiver1Key, senderKey);
 
         expect(decryptedKey.activateOff).to.deep.equal(key.activateOff);
         expect(decryptedKey.key).to.deep.equal(key.key);
         expect(decryptedKey.id).to.deep.equal(key.id);
+    });
+    it("should not decrypt a key intended for another receiver", () => {
+        const key = Key.create();
+        key.id = Buffer.from("bUcmwfgbWhE=", "base64");
+        key.activateOff = new Date(1524043365337);
+
+        const encryptedKey = key.encrypt(receiver1Key, senderKey);
+        const decryptedKey = Key.decrypt(encryptedKey, receiver2Key, senderKey);
+
+        expect(decryptedKey).to.be.null;
+    });
+    it("should not decrypt something that is not a key", () => {
+        try {
+            Key.decrypt(Buffer.from("Not a key!"), receiver1Key, senderKey);
+        } catch (e) {
+            expect(e.message).to.equal("Not a key");
+            return;
+        }
+        throw new Error("key.decrypt(...) should throw an error");
     });
 });
