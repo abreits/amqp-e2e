@@ -65,7 +65,8 @@ function encrypt(using: Key | KeyManager) {
     const cipher = crypto.createCipheriv("aes-256-gcm", key.key, iv);
     const encryptedData = Buffer.concat([cipher.update(data), cipher.final()]);
     const tag = cipher.getAuthTag();
-    const msgElements = (using instanceof Key) ?  [iv, tag, encryptedData] : [key.id, iv, tag, encryptedData];
+    const msgType = Buffer.from("M", "utf8");
+    const msgElements = (using instanceof Key) ?  [iv, tag, encryptedData] : [msgType, key.id, iv, tag, encryptedData];
     const encryptedMessage = Buffer.concat(msgElements);
     this.content = encryptedMessage;
     this.properties = {};
@@ -82,8 +83,13 @@ function decrypt(using: Key | KeyManager) {
     let key: Key;
     const encryptedMessage = this.content;
     if (using instanceof KeyManager) {
+        // expect msgType to be message 'M'
+        const msgType = encryptedMessage.toString("utf8", offset, offset += 1);
+        if(msgType !== "M") {
+            throw Error("Not an encrypted managed message");
+        }
         // expect keyid in encrypted message
-        const keyId = encryptedMessage.slice(0, offset += KEYID_LENGTH);
+        const keyId = encryptedMessage.slice(offset, offset += KEYID_LENGTH);
         key = using.get(keyId);
         if (key === undefined) {
             throw new Error("Key id does not exist");

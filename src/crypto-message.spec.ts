@@ -84,4 +84,17 @@ describe("Test crypto-message module", () => {
         }
         throw new Error("No error thrown");
     });
+    it("'KeyManager decrypt should check message type", () => {
+        try {
+            const cryptoMsg = new Amqp.Message(testData) as CryptoMessage;
+            cryptoMsg.encrypt(testKey);
+            cryptoMsg.content.writeInt8(20,0); // make sure this is not "M" by accident
+            cryptoMsg.decrypt(testKeyManager);
+            expect(cryptoMsg.content).to.deep.equal(testData);
+        } catch (e) {
+            expect(e.message).to.equal("Not an encrypted managed message");
+            return;
+        }
+        throw new Error("No error thrown");
+    });
 });
