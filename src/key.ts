@@ -72,11 +72,9 @@ export class Key {
         }
         // only compute the sign for the content to encrypt once for all receivers
         if (!this.sign) {
-            const signer = crypto.createSign("SHA256");
-            signer.update(this.toEncrypt);
-            this.sign = signer.sign(signKey.privatePem);
+            this.sign = signKey.sign(this.toEncrypt);
         }
-        const encrypted = crypto.publicEncrypt(encryptKey.publicPem, this.toEncrypt);
+        const encrypted = encryptKey.publicEncrypt(this.toEncrypt);
         const encryptedSize = Buffer.allocUnsafe(2);
         encryptedSize.writeUInt16LE(encrypted.length, 0);
         return (Buffer.concat([encryptedSize, encrypted, this.sign]));
@@ -92,10 +90,8 @@ export class Key {
 
     static decrypt(encrypted: Buffer, decryptKey: RsaKey, verifyKey: RsaKey) {
         const encryptedSize = encrypted.readUInt16LE(0);
-        const decrypted = crypto.privateDecrypt(decryptKey.privatePem, encrypted.slice(2, encryptedSize + 2));
-        const verify = crypto.createVerify("SHA256");
-        verify.update(decrypted);
-        if(verify.verify(verifyKey.publicPem, encrypted.slice(encryptedSize + 2))) {
+        const decrypted = decryptKey.privateDecrypt(encrypted.slice(2, encryptedSize + 2));
+        if(verifyKey.verify(decrypted, encrypted.slice(encryptedSize + 2))) {
             const key = new Key();
             key.activateOff = new Date(decrypted.readDoubleLE(0));
             key.key = decrypted.slice(8, 40);

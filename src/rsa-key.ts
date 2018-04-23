@@ -29,4 +29,32 @@ export class RsaKey {
             return this.md5Hash;
         }
     }
+
+    privateEncrypt(toEncrypt: Buffer): Buffer {
+        return crypto.privateEncrypt(this.privatePem, toEncrypt);
+    }
+
+    privateDecrypt(toDecrypt: Buffer): Buffer {
+        return crypto.privateDecrypt(this.privatePem, toDecrypt);
+    }
+
+    publicEncrypt(toEncrypt: Buffer): Buffer {
+        return crypto.publicEncrypt(this.publicPem, toEncrypt);
+    }
+
+    publicDecrypt(toDecrypt: Buffer): Buffer {
+        return crypto.publicDecrypt(this.publicPem, toDecrypt);
+    }
+
+    sign(toSign: Buffer): Buffer {
+        const signer = crypto.createSign("SHA256");
+        signer.update(toSign);
+        return signer.sign(this.privatePem);
+    }
+
+    verify(toVerify: Buffer, sign): boolean {
+        const verify = crypto.createVerify("SHA256");
+        verify.update(toVerify);
+        return verify.verify(this.publicPem, sign);
+    }
 }
