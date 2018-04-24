@@ -104,7 +104,7 @@ export class KeyManager {
             for (let lookup in this.keys) {
                 const now = new Date();
                 const key = this.keys[lookup];
-                if ((!key.activateOn || key.activateOn) < now && (!key.activateOff || key.activateOff > now)) {
+                if ((!key.startDate || key.startDate) < now && (!key.endDate || key.endDate > now)) {
                     if (!created || created < key.created) {
                         created = key.created;
                         this.encryptionKey = key;
@@ -123,7 +123,7 @@ export class KeyManager {
 
         for (let lookup in this.keys) {
             let key = this.keys[lookup];
-            if (key.activateOff && key.activateOff >= now) {
+            if (key.endDate && key.endDate >= now) {
                 delete this.keys[lookup];
             }
         }

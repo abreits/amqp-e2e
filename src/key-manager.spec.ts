@@ -117,14 +117,14 @@ describe("Test the KeyManager class", () => {
         //adjust creation Date
 
         key1.created.setDate(today - 5);
-        key1.activateOn = new Date(now - 5 * day);
-        key1.activateOff = new Date(now - 5 * day);
+        key1.startDate = new Date(now - 5 * day);
+        key1.endDate = new Date(now - 5 * day);
         key2.created.setDate(today - 2);
-        key2.activateOn = new Date(now - 2 * day);
-        key2.activateOff = new Date(now - 1 * day);
+        key2.startDate = new Date(now - 2 * day);
+        key2.endDate = new Date(now - 1 * day);
         key3.created.setDate(today - 3);
-        key3.activateOn = new Date(now - 3 * day);
-        key3.activateOff = new Date(now - 2 * day);
+        key3.startDate = new Date(now - 3 * day);
+        key3.endDate = new Date(now - 2 * day);
 
         const key = km.setEncryptionKey();
 
@@ -140,14 +140,14 @@ describe("Test the KeyManager class", () => {
         km.add(key3);
 
         key1.created.setDate(today - 5);
-        key1.activateOn = new Date(now - 5 * day);
-        key1.activateOff = new Date(now + 5 * day);
+        key1.startDate = new Date(now - 5 * day);
+        key1.endDate = new Date(now + 5 * day);
         key2.created.setDate(today - 2);
-        key2.activateOn = new Date(now - 2 * day);
-        key2.activateOff = new Date(now - 1 * day);
+        key2.startDate = new Date(now - 2 * day);
+        key2.endDate = new Date(now - 1 * day);
         key3.created.setDate(today - 3);
-        key3.activateOn = new Date(now - 3 * day);
-        key3.activateOff = new Date(now - 2 * day);
+        key3.startDate = new Date(now - 3 * day);
+        key3.endDate = new Date(now - 2 * day);
 
         const key = km.setEncryptionKey();
 
@@ -168,14 +168,14 @@ describe("Test the KeyManager class", () => {
         km.add(key3);
 
         key1.created.setDate(today - 5);
-        key1.activateOn = new Date(now - 5 * day);
-        key1.activateOff = new Date(now + 5 * day);
+        key1.startDate = new Date(now - 5 * day);
+        key1.endDate = new Date(now + 5 * day);
         key2.created.setDate(today - 2);
-        key2.activateOn = new Date(now - 2 * day);
-        key2.activateOff = new Date(now - 1 * day);
+        key2.startDate = new Date(now - 2 * day);
+        key2.endDate = new Date(now - 1 * day);
         key3.created.setDate(today - 3);
-        key3.activateOn = new Date(now - 3 * day);
-        key3.activateOff = new Date(now - 2 * day);
+        key3.startDate = new Date(now - 3 * day);
+        key3.endDate = new Date(now - 2 * day);
         km.setEncryptionKey();
 
         km.persist();

@@ -15,8 +15,8 @@ const MIN_DATE = new Date(-8640000000000000);
 export class Key {
     id: Buffer; // 8 byte buffer
     key: Buffer; // 32 byte buffer
-    activateOn: Date; // DateTime when to activate this key as the active key for encryption
-    activateOff: Date; //DateTime when to deactivate again
+    startDate: Date; // DateTime when to activate this key as the active key for encryption
+    endDate: Date; //DateTime when to deactivate again
     created: Date;
 
     private toEncrypt: Buffer;
@@ -37,11 +37,11 @@ export class Key {
             key.id = new Buffer(parsed.i, "base64");
         }
         key.key = new Buffer(parsed.k, "base64");
-        if (parsed.a) {
-            key.activateOn = new Date(parsed.a);
+        if (parsed.s) {
+            key.startDate = new Date(parsed.s);
         }
-        if (parsed.d) {
-            key.activateOff = new Date(parsed.d);
+        if (parsed.e) {
+            key.endDate = new Date(parsed.e);
         }
         key.created = new Date(parsed.c);
 
@@ -52,8 +52,8 @@ export class Key {
         let s = "{";
         s += this.id ? "\"i\":\"" + this.id.toString("base64") + "\"," : "";
         s += "\"k\":\"" + this.key.toString("base64") + "\",";
-        s += this.activateOn ? "\"a\":" + this.activateOn.getTime() + "," : "";
-        s += this.activateOff ? "\"d\":" + this.activateOff.getTime() + "," : "";
+        s += this.startDate ? "\"s\":" + this.startDate.getTime() + "," : "";
+        s += this.endDate ? "\"e\":" + this.endDate.getTime() + "," : "";
         s += "\"c\":" + this.created.getTime() + "}";
 
         return s;
@@ -67,7 +67,7 @@ export class Key {
                 throw new Error("Trying to encrypt incomplete Key");
             }
             const activateOff = Buffer.allocUnsafe(8);
-            activateOff.writeDoubleLE((this.activateOff ? this.activateOff : MAX_DATE).getTime(), 0);
+            activateOff.writeDoubleLE((this.endDate ? this.endDate : MAX_DATE).getTime(), 0);
             this.toEncrypt = Buffer.concat([activateOff, this.key, this.id]);
         }
         // only compute the sign for the content to encrypt once for all receivers
@@ -104,7 +104,7 @@ export class Key {
         const decrypted = decryptKey.privateDecrypt(encrypted.slice(19, encryptedSize + 19));
         if(verifyKey.verify(decrypted, encrypted.slice(encryptedSize + 19))) {
             const key = new Key();
-            key.activateOff = new Date(decrypted.readDoubleLE(0));
+            key.endDate = new Date(decrypted.readDoubleLE(0));
             key.key = decrypted.slice(8, 40);
             key.id = decrypted.slice(40);
             return key;

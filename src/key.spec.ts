@@ -51,14 +51,14 @@ describe("Test the Key class", () => {
         // make a constant key for testing purposes
         key.id = Buffer.from("bUcmwfgbWhE=", "base64");
         key.key = Buffer.from("a9ITQAFpNi+wJqrw4n7SznGJ3rtACO1GoX8iYUHke+8=", "base64");
-        key.activateOn = new Date(1523956965337);
-        key.activateOff = new Date(1524043365337);
+        key.startDate = new Date(1523956965337);
+        key.endDate = new Date(1524043365337);
         key.created = new Date(1523697157207);
 
         expect(key.export()).to.equal("{\"i\":\"bUcmwfgbWhE=\"," +
             "\"k\":\"a9ITQAFpNi+wJqrw4n7SznGJ3rtACO1GoX8iYUHke+8=\"," +
-            "\"a\":1523956965337," +
-            "\"d\":1524043365337," +
+            "\"s\":1523956965337," +
+            "\"e\":1524043365337," +
             "\"c\":1523697157207}");
     });
     it("should import an exported key", () => {
@@ -67,8 +67,8 @@ describe("Test the Key class", () => {
         // make a constant key for testing purposes
         key.id = Buffer.from("bUcmwfgbWhE=", "base64");
         key.key = Buffer.from("a9ITQAFpNi+wJqrw4n7SznGJ3rtACO1GoX8iYUHke+8=", "base64");
-        key.activateOn = new Date(1523956965337);
-        key.activateOff = new Date(1524043365337);
+        key.startDate = new Date(1523956965337);
+        key.endDate = new Date(1524043365337);
         key.created = new Date(1523697157207);
 
         const keyExport = key.export();
@@ -113,19 +113,19 @@ describe("Test the Key class", () => {
     it("should encrypt a key and decrypt a key", () => {
         const key = Key.create();
         key.id = Buffer.from("bUcmwfgbWhE=", "base64");
-        key.activateOff = new Date(1524043365337);
+        key.endDate = new Date(1524043365337);
 
         const encryptedKey = key.encrypt(receiver1Key, senderKey);
         const decryptedKey = Key.decrypt(encryptedKey, receiver1Key, senderKey);
 
-        expect(decryptedKey.activateOff).to.deep.equal(key.activateOff);
+        expect(decryptedKey.endDate).to.deep.equal(key.endDate);
         expect(decryptedKey.key).to.deep.equal(key.key);
         expect(decryptedKey.id).to.deep.equal(key.id);
     });
     it("should not decrypt a key intended for another receiver", () => {
         const key = Key.create();
         key.id = Buffer.from("bUcmwfgbWhE=", "base64");
-        key.activateOff = new Date(1524043365337);
+        key.endDate = new Date(1524043365337);
 
         const encryptedKey = key.encrypt(receiver1Key, senderKey);
         const decryptedKey = Key.decrypt(encryptedKey, receiver2Key, senderKey);

@@ -5,11 +5,15 @@
 import * as crypto from "crypto";
 import * as fs from "fs";
 import * as path from "path";
+import * as Amqp from "amqp-ts";
+
+const MAX_DATE = new Date(8640000000000000);
+const MIN_DATE = new Date(-8640000000000000);
 
 import { KEY_LENGTH } from "./crypto-message";
 import { Key } from "./key";
 import { KeyManager, KEYID_LENGTH } from "./key-manager";
-import { AmqpConnection } from "./amqp-connection";
+import { AmqpConnection, ConnectionDefinition } from "./amqp-connection";
 import { RsaKey } from "./rsa-key";
 
 /*
@@ -79,34 +83,39 @@ import { RsaKey } from "./rsa-key";
  *
  */
 
-interface DefinedEndpoint {
-    name: string; // name of the sender/receiver, should be unique
-    connection: AmqpConnection;
+interface StartpointDefinition {
+    connection: ConnectionDefinition;
     publicKeyFile: string; // filename of the file containing the public key in PEM format
     privateKeyFile: string; // filename of the file containing the private key in PEM format
 }
 
-interface EndpointDefinition {
-    name: string; // name of the sender/receiver, should be unique
-    publicKeyFile: string; // filename of the file containing the public key in PEM format
-    startDate?: string | number; // UTC date-time, if not defined always start
-    endDate?: string | number; // UTC date-time, if not defined keeps running
+class Startpoint {
+    connection: AmqpConnection;
+    key: RsaKey; // filename of the file containing the public key in PEM format
 }
 
-class ReferencedEndpoint {
+
+interface EndpointDefinition {
+    publicKeyFile: string; // filename of the file containing the public key in PEM format
+    privateKeyFile?: string; // filename of the file containing the private key in PEM format
+    startDate?: string | number; // UTC date-time, if not defined always start
+    endDate?: string | number; // UTC date-time, if not defined never end
+}
+
+class Endpoint {
     static keyDirectory = "";
 
-    publicKey: RsaKey; // contains the public key in PEM format
-    startDate?: Date; // if not defined always start
-    endDate?: Date; // if not defined keeps running
+    key: RsaKey; // contains the public key in PEM format
+    startDate: Date; // if not defined always start
+    endDate: Date; // if not defined keeps running
 
     get name(): string {
-        return this.publicKey.hash.toString("hex");
+        return this.key.hash.toString("hex");
     }
 
     constructor(definition: EndpointDefinition) {
         try {
-            this.publicKey = new RsaKey(fs.readFileSync(definition.publicKeyFile, "utf8"));
+            this.key = new RsaKey(fs.readFileSync(definition.publicKeyFile, "utf8"));
         } catch {
             throw new Error("Error reading public key file");
         }
@@ -116,6 +125,8 @@ class ReferencedEndpoint {
             } catch {
                 throw new Error("Illegal startDate defined");
             }
+        } else {
+            this.startDate = MIN_DATE;
         }
         if (definition.endDate) {
             try {
@@ -123,51 +134,51 @@ class ReferencedEndpoint {
             } catch {
                 throw new Error("Illegal endDate defined");
             }
+        } else {
+            this.startDate = MAX_DATE;
         }
     }
 }
 
 export class KeyDistributor {
     //semi constants
-    protected sender: DefinedEndpoint;
-    protected newKeyNotifyPeriod = 3600000; //period in which to send the new keys to the receivers in ms (default 1 hour)
-    protected newKeyNotifyRepetitons = 1;
-    protected keyRotationPeriod = 24 * 3600000; //force new key to be used after .. ms, default every 24 hours, 0 is never
+    protected sender: Startpoint;
+    protected startNewKeySendRange = 3600000; // start sending new keys to the receivers in ms (default 1 hour)
+    protected endNewKeySendRange = 1800000; // all new keys should be sent when this interval starts (default 1/2 hour)
+    // protected newKeyNotifyRepetitons = 1; // future update?
+    protected keyRotationInterval = 24 * 3600000; //force new key to be used after .. ms, default every 24 hours, 0 is never
     protected receiverDefinitionFile: string; // path to the receiver definition json file
 
-    protected receivers: Map<string, ReferencedEndpoint> = new Map;
-    protected activeReceivers: Map<string, ReferencedEndpoint> = new Map;
+    protected receivers: Map<string, Endpoint> = new Map;
+    protected activeReceivers: Map<string, Endpoint> = new Map;
 
     protected keys: KeyManager;
     protected activeKey: Key;
     protected activeKeyChangeTime: Date;
 
     protected nextKey: Key;
-    protected nextKeyReceived: Map<string, ReferencedEndpoint> = new Map;
-    protected nextKeyNotReceived: Map<string, ReferencedEndpoint> = new Map;
+    protected nextKeySent: Map<string, Endpoint> = new Map;
+    protected nextKeyNotSent: Map<string, Endpoint> = new Map;
 
     protected timer: any;
 
-    updateActiveReceivers() {
-        const now = new Date();
-        this.activeReceivers.clear();
+    getActiveReceiversOn(date: Date) {
+        const activeReceivers = new Map();
         for (let [name, receiver] of this.receivers) {
-            if (
-                (!receiver.startDate || receiver.startDate < now) &&
-                (!receiver.endDate || receiver.endDate > now)
-            ) {
-                this.activeReceivers.set(name, receiver);
+            if (receiver.startDate <= date && receiver.endDate > date) {
+                activeReceivers.set(name, receiver);
             }
         }
+        return activeReceivers;
     }
 
     processReceiverConfigFile() {
-        const newReceivers: Map<string, ReferencedEndpoint> = new Map;
+        const newReceivers: Map<string, Endpoint> = new Map;
         try {
             const receiverDefinitionString = fs.readFileSync(this.receiverDefinitionFile, "utf8");
             const receiverDefinitions = JSON.parse(receiverDefinitionString) as EndpointDefinition[];
-            for (let i = 0; i < receiverDefinitions.length; i += 1 ) {
-                const receiver = new ReferencedEndpoint(receiverDefinitions[i]);
+            for (let i = 0; i < receiverDefinitions.length; i += 1) {
+                const receiver = new Endpoint(receiverDefinitions[i]);
                 newReceivers[receiver.name] = receiver;
             }
         } catch {
@@ -177,26 +188,26 @@ export class KeyDistributor {
         const oldReceivers = this.receivers;
         const oldActiveReceivers = this.activeReceivers;
         this.receivers = newReceivers;
-        this.updateActiveReceivers();
+        this.activeReceivers = this.getActiveReceiversOn(new Date());
 
         // check if we are updating keys at the moment
         if (this.nextKey) {
             // check if we have already updated receivers that are no longer defined or active
-            for (let [name, receiver] of this.nextKeyReceived) {
-                if(!this.activeReceivers.get(name)) {
+            for (let [name, receiver] of this.nextKeySent) {
+                if (!this.activeReceivers.get(name)) {
                     // found a receiver that no longer is active: force distribution of new keys
                     this.nextKey = null; // create new key!
                     return this.updateNow();
                 }
             }
             // recompute nextKeyNotReceived
-            this.nextKeyNotReceived.clear();
+            this.nextKeyNotSent.clear();
             for (let [name, receiver] of this.activeReceivers) {
-                if (!this.nextKeyReceived.get(name)) {
-                    this.nextKeyNotReceived[name] = receiver;
+                if (!this.nextKeySent.get(name)) {
+                    this.nextKeyNotSent[name] = receiver;
                 }
             }
-            if (this.nextKeyNotReceived.size > 0) {
+            if (this.nextKeyNotSent.size > 0) {
                 // new receiver now active, use same key and force rest to be done now
                 return this.updateNow();
             }
@@ -210,10 +221,10 @@ export class KeyDistributor {
             // check if there are new receivers active
             for (let [name, receiver] of this.activeReceivers) {
                 if (!oldActiveReceivers.get(name)) {
-                    this.nextKeyNotReceived[name] = receiver;
+                    this.nextKeyNotSent[name] = receiver;
                 }
             }
-            if(this.nextKeyNotReceived.size > 0) {
+            if (this.nextKeyNotSent.size > 0) {
                 // update new receivers with current keys
                 this.nextKey = this.activeKey;
                 return this.updateNow();
@@ -230,9 +241,66 @@ export class KeyDistributor {
 
     onTimeout = () => {
         if (!this.nextKey) {
+            // create new key to be the next key
             this.nextKey = Key.create();
+            this.nextKey.startDate = this.activeKeyChangeTime;
+            this.nextKey.endDate = this.nextActiveKeyChangetime;
             this.keys.add(this.nextKey);
-            // todo: compute valid until for the new key
+            this.nextKeySent.clear();
+            this.nextKeyNotSent = this.getActiveReceiversOn(this.activeKeyChangeTime);
         }
+        // check how much time we have to distribute the keys
+        let timeUntilNextKeyActive = this.activeKeyChangeTime.getTime() - Date.now();
+        if (timeUntilNextKeyActive <= this.endNewKeySendRange) {
+            // at the ned of the key send interval, send all remaining key updates to the receivers now!
+            for (let [name, receiver] of this.nextKeyNotSent) {
+                this.sendNextKey(receiver);
+                this.nextKeySent.set(name, receiver);
+            }
+            this.nextKeyNotSent.clear();
+        } else {
+            // spread out key distribution to receivers in the remaining period
+            if (this.nextKeyNotSent.size > 0) {
+                // send to first receiver in the map
+                let [name, receiver] = this.nextKeyNotSent.entries().next().value;
+                this.sendNextKey(receiver);
+                this.nextKeySent.set(name, receiver);
+                this.nextKeySent.delete(name);
+            }
+            timeUntilNextKeyActive = this.activeKeyChangeTime.getTime() - Date.now();
+            if (this.nextKeyNotSent.size > 0) {
+                // still keys to send, wait until we can send next key
+                let updateRange = timeUntilNextKeyActive - this.endNewKeySendRange;
+                updateRange = updateRange < 0 ? 0 : updateRange;
+                this.timer = setTimeout(this.onTimeout, updateRange / this.nextKeyNotSent.size);
+            } else {
+                // all keys sent, wait until next key active
+                this.timer = setTimeout(timeUntilNextKeyActive);
+            }
+
+        }
+
+    }
+
+    sendNextKey(receiver) {
+        const message = new Amqp.Message(this.nextKey.encrypt(receiver.key, this.sender.key));
+        this.sender.connection.send(message);
+    }
+
+    get nextActiveKeyChangetime(): Date {
+        let nextTime = new Date(MAX_DATE);
+        if (this.keyRotationInterval) {
+            nextTime.setTime(this.activeKeyChangeTime.getTime() + this.keyRotationInterval);
+        }
+        for (let [name, receiver] of this.receivers) {
+            if (receiver.startDate > this.activeKeyChangeTime && receiver.startDate < nextTime) {
+                nextTime = receiver.startDate;
+            }
+            if (receiver.endDate > this.activeKeyChangeTime && receiver.endDate < nextTime) {
+                nextTime = receiver.endDate;
+            }
+        }
+
+        return nextTime;
     }
 }
