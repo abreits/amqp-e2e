@@ -8,22 +8,23 @@ import * as Amqp from "amqp-ts";
 import { AmqpConnection, ConnectionDefinition, ExchangeDefinition, QueueDefinition } from "./amqp-connection";
 import { Key } from "./key";
 import { KeyManager } from "./key-manager";
+import { KeyDistributor, KeyDistributorSettings } from "./key-distribution";
 import { CryptoMessage, addCryptoMessage } from "./crypto-message";
 addCryptoMessage();
 
 
-export interface AuthShovelDefinition {
+export interface ManagedShovelDefinition {
     encrypts: boolean;
     from: AmqpConnection;
     to: AmqpConnection;
     privateKeyFile: string; // path to private cert file of this shovel
     receiverConfigFolder?: string; // path to folder containing RSA public keys of receivers and receiver
     // config json files (RSA public key and config json have identical base filenames).
-    updateInterval?: number; // interval in ms to automatically update the AES key and send it to the active receivers
-    updateMargin?: number; // margin in ms between sending and using a new key
+    startUpdateWindow?: number; // interval in ms to automatically update the AES key and send it to the active receivers
+    endUpdateWindow?: number; // margin in ms between sending and using a new key
 }
 
-export class AuthCryptoShovel {
+export class ManagedCryptoShovel {
     currentKey: Key;
 
     protected started: boolean;
@@ -83,4 +84,4 @@ export class AuthCryptoShovel {
     }
 }
 
-export default AuthCryptoShovel;
+export default ManagedCryptoShovel;

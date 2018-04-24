@@ -118,7 +118,7 @@ export class KeyManager {
     /**
      * remove deactivated keys
      */
-    cleanupKeys() {
+    cleanup() {
         const now = new Date();
 
         for (let lookup in this.keys) {
