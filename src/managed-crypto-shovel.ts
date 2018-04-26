@@ -8,7 +8,7 @@ import * as Amqp from "amqp-ts";
 import { AmqpConnection, ConnectionDefinition, ExchangeDefinition, QueueDefinition } from "./amqp-connection";
 import { Key } from "./key";
 import { KeyManager } from "./key-manager";
-import { KeyDistributor, KeyDistributorSettings } from "./key-distributor";
+import { KeyDistributor, KeyDistributorDefinition } from "./key-distributor";
 import { CryptoMessage, addCryptoMessage } from "./crypto-message";
 addCryptoMessage();
 

@@ -3,58 +3,78 @@
  * */
 
 import * as fs from "fs";
+import * as path from "path";
 
 const MAX_DATE = new Date(8640000000000000);
 const MIN_DATE = new Date(-8640000000000000);
 
+import { AmqpConnection } from "./amqp-connection";
 import { RsaKey } from "./rsa-key";
+import { Key } from "./key";
+import { KeyManager } from "./key-manager";
 
 export interface KeyReceiverDefinition {
-    publicKeyFile: string; // filename of the file containing the public key in PEM format
-    privateKeyFile?: string; // filename of the file containing the private key in PEM format
+    key: string; // filename of the receiver rsa public key pem file
     startDate?: string | number; // UTC date-time, if not defined always start
     endDate?: string | number; // UTC date-time, if not defined never end
 }
 
+export interface FullKeyReceiverDefinition {
+    connection: AmqpConnection; // receive key udates from
+    senderKey: RsaKey; // rsa public key of the sender
+    receiverKey: RsaKey; // rsa public and private keys of the receiver
+    keyManager: KeyManager; // keep track of the keys
+}
+
 export class KeyReceiver {
-    static keyDirectory = "";
+    senderKey: RsaKey; // rsa public key of the sender
+    receiverKey: RsaKey; // rsa public and private keys of the receiver
+    keyManager?: KeyManager;
+    startDate?: Date; // if not defined always start
+    endDate?: Date; // if not defined keeps running
 
-    key: RsaKey; // contains the public key in PEM format
-    startDate: Date; // if not defined always start
-    endDate: Date; // if not defined keeps running
-
-    get name(): string {
-        return this.key.hash.toString("hex");
-    }
-
-    constructor(definition: KeyReceiverDefinition) {
+    static create(def: KeyReceiverDefinition, receiverDir: string) {
+        const receiver = new KeyReceiver();
         try {
-            let publicKeyPem = fs.readFileSync(definition.publicKeyFile, "utf8");
-            let privateKeyPem = null;
-            if (definition.privateKeyFile) {
-                privateKeyPem = fs.readFileSync(definition.privateKeyFile, "utf8");
-            }
-            this.key = new RsaKey(publicKeyPem, privateKeyPem);
+            receiver.receiverKey = new RsaKey(fs.readFileSync(path.join(receiverDir, def.key), "utf8"));
         } catch {
-            throw new Error("Error reading public or private key file");
+            throw new Error("Rsa Public Key not found");
         }
-        if (definition.startDate) {
+        if (def.startDate) {
             try {
-                this.startDate = new Date(definition.startDate);
+                receiver.startDate = new Date(def.startDate);
             } catch {
                 throw new Error("Unrecognisable startDate, use UTC");
             }
         } else {
-            this.startDate = MIN_DATE;
+            receiver.startDate = MIN_DATE;
         }
-        if (definition.endDate) {
+        if (def.endDate) {
             try {
-                this.endDate = new Date(definition.endDate);
+                receiver.endDate = new Date(def.endDate);
             } catch {
                 throw new Error("Unrecognisable endDate, use UTC");
             }
         } else {
-            this.startDate = MAX_DATE;
+            receiver.endDate = MAX_DATE;
         }
+        return receiver;
+    }
+
+    static createFull(def: FullKeyReceiverDefinition) {
+        const receiver = new KeyReceiver();
+        receiver.receiverKey = def.receiverKey;
+        receiver.senderKey = def.senderKey;
+        receiver.keyManager = def.keyManager;
+
+        return receiver;
+    }
+
+    get id(): string {
+        return this.receiverKey.hash.toString("hex");
+    }
+
+    addKey(buf: Buffer) {
+        this.keyManager.add(Key.decrypt(buf, this.receiverKey, this.senderKey));
     }
 }

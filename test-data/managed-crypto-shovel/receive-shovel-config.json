@@ -1,0 +1,26 @@
+{
+    "publicKeyReceiver": "filename",
+    "privateKeyReceiver": "filename",
+    "publicKeySender": "filename",
+    "encrypts": false,
+    "from": {
+        "connectionUrl": "amqp://open_amqp",
+        "binding": {
+            "exchange": "managed-encrypted-exchange",
+            "exchangeType": "fanout",
+            "options": {
+                "autoDelete": true
+            }
+        }
+    },
+    "to": {
+        "connectionUrl": "amqp://open_amqp",
+        "binding": {
+            "exchange": "managed-dest-exchange",
+            "exchangeType": "fanout",
+            "options": {
+                "autoDelete": true
+            }
+        }
+    }
+}
