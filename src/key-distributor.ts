@@ -71,7 +71,7 @@ export class KeyDistributor {
     protected receivers: Map<string, KeyReceiver> = new Map;
     protected activeReceivers: Map<string, KeyReceiver> = new Map;
 
-    protected keys: KeyManager;
+    protected keys = new KeyManager();
     protected activeKey: Key;
     protected activeKeyChangeTime: Date;
 
@@ -96,6 +96,7 @@ export class KeyDistributor {
         try {
             const fullFileName = path.join(this.receiverPath, this.receiverFile);
             const receiverDefinitionString = fs.readFileSync(fullFileName, "utf8");
+            // console.log("Reading file ", fullFileName);
             const receiverDefinitions = JSON.parse(receiverDefinitionString) as KeyReceiverDefinition[];
             for (let i = 0; i < receiverDefinitions.length; i += 1) {
                 const receiver = KeyReceiver.create(receiverDefinitions[i], this.receiverPath);
@@ -128,7 +129,7 @@ export class KeyDistributor {
             this.nextKeyNotSent.clear();
             for (let [name, receiver] of this.activeReceivers) {
                 if (!this.nextKeySent.get(name)) {
-                    this.nextKeyNotSent[name] = receiver;
+                    this.nextKeyNotSent.set(name, receiver);
                 }
             }
             if (this.nextKeyNotSent.size > 0) {
@@ -145,7 +146,7 @@ export class KeyDistributor {
             // check if there are new receivers active
             for (let [name, receiver] of this.activeReceivers) {
                 if (!oldActiveReceivers.get(name)) {
-                    this.nextKeyNotSent[name] = receiver;
+                    this.nextKeyNotSent.set(name, receiver);
                 }
             }
             if (this.nextKeyNotSent.size > 0) {
@@ -190,7 +191,7 @@ export class KeyDistributor {
                 this.keys.setEncryptionKey(this.nextKey);
                 this.activeKey = this.nextKey;
                 this.nextKey = null;
-                waitPeriod = Date.now() - this.nextActiveKeyChangetime.getTime();
+                waitPeriod = this.nextActiveKeyChangetime.getTime() - Date.now();
             }
         } else {
             // spread out key distribution to receivers in the remaining period

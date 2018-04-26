@@ -12,6 +12,16 @@ import { KeyDistributor, KeyDistributorDefinition } from "./key-distributor";
 import { KeyReceiver, KeyReceiverDefinition } from "./key-receiver";
 import { RsaKey } from "./rsa-key";
 
+// global tests settings
+const receiverPath = path.join(__dirname, "../test-data/key-distributor");
+const senderPrivateKey = fs.readFileSync(path.join(receiverPath, "sender.private"), "utf8");
+const senderPublicKey = fs.readFileSync(path.join(receiverPath, "sender.public"), "utf8");
+const senderKey = new RsaKey(senderPublicKey, senderPrivateKey);
+const receiver1Key = new RsaKey(fs.readFileSync(path.join(receiverPath, "receiver1.public"), "utf8"));
+const receiver2Key = new RsaKey(fs.readFileSync(path.join(receiverPath, "receiver2.public"), "utf8"));
+const receiver3Key = new RsaKey(fs.readFileSync(path.join(receiverPath, "receiver3.public"), "utf8"));
+const receiver4Key = new RsaKey(fs.readFileSync(path.join(receiverPath, "receiver4.public"), "utf8"));
+
 // test functionality added to the KeyDistributor class
 class KeyDistributorTest extends KeyDistributor {
     // to inspect internal state of the class
@@ -37,18 +47,14 @@ class KeyDistributorTest extends KeyDistributor {
         });
     }
 
-    static startTest(testConfig: KeyReceiverDefinition[]) {
-        let keyDistributor = new KeyDistributorTest({
-            connection: null,
-            key: senderKey,
-            receiverPath: receiverPath
-        });
-    }
-
     // catch setTimeout calls
-    timeoutHandler: (waitPeriod: number) => boolean;
+    timeoutHandler: (waitPeriod: number) => () => void;
     setTimeout(waitPeriod: number) {
-        if(this.timeoutHandler(waitPeriod)) {
+        let done = this.timeoutHandler(waitPeriod);
+        if (done) {
+            this.stop();
+            done();
+        } else {
             super.setTimeout(waitPeriod);
         }
     }
@@ -60,17 +66,19 @@ class KeyDistributorTest extends KeyDistributor {
     }
 }
 
-// read rsa keys for tests
-const rsaPath = path.join(__dirname, "../test-data/rsa-keys");
-const receiverPath = path.join(__dirname, "../test-data/key-distributor");
-const senderPrivateKey = fs.readFileSync(path.join(rsaPath, "sender.private"), "utf8");
-const senderPublicKey = fs.readFileSync(path.join(rsaPath, "sender.public"), "utf8");
-const senderKey = new RsaKey(senderPublicKey, senderPrivateKey);
+function createReceiversFile(receiverFile: string, testConfig: KeyReceiverDefinition[]) {
+    let configString = JSON.stringify(testConfig, null, 4);
+    fs.writeFileSync(path.join(receiverPath, receiverFile), configString, { encoding: "utf8" });
+}
+
+function deleteReceiversFile(receiverFile: string) {
+    fs.unlinkSync(path.join(receiverPath, receiverFile));
+}
 
 // define timing test constants
 const tu = 10; // minimal time unit in ms to successfully test on with timeout tests
 
-describe("Test KeyDistributor class", function() {
+describe("Test KeyDistributor class", function () {
     it("should create a receiver list from a file", () => {
         let keyDistributor = KeyDistributorTest.fromConfigFile("receivers.json");
         keyDistributor.processReceiverConfigFile();
@@ -98,6 +106,30 @@ describe("Test KeyDistributor class", function() {
         expect(keyDistributor.getActiveReceiversOn(new Date("2002-06-01T00:00:00.000Z")).size).to.equal(2);
         expect(keyDistributor.getActiveReceiversOn(new Date("2012-01-01T00:00:00.000Z")).size).to.equal(2);
     });
+    it("should immedeately send new keys after start", (done) => {
+        createReceiversFile("test1.json", [
+            {
+                key: "receiver1.public"
+            }
+        ]);
+        let keyDistributor = KeyDistributorTest.fromConfigFile("test1.json");
+        keyDistributor.sendKeyHandler = (receiver: KeyReceiver) => {
+            expect(receiver.id).to.equal(receiver1Key.hash.toString("hex"));
+        };
+        let timeoutCount = 0;
+        keyDistributor.timeoutHandler = (waitPeriod: number) => {
+            timeoutCount += 1;
+            switch (timeoutCount) {
+                case 1:
+                    expect(waitPeriod).to.equal(0);
+                    return null;
+                case 2:
+                    expect(waitPeriod).to.be.greaterThan(0);
+                    return done;
+            }
+            return done;
+        };
+        keyDistributor.start();
+    });
     //todo: define as much edge cases as we can
-
 });

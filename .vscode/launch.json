@@ -40,7 +40,7 @@
 		{
 			"request": "launch",
 			// Name of configuration; appears in the launch configuration drop down menu.
-			"name": "Run key-manager.spec",
+			"name": "Run key-distributor.spec",
 			// Type of configuration. Possible values: "node", "mono".
 			"type": "node",
 			// Workspace relative or absolute path to the program.
@@ -49,7 +49,7 @@
 			"stopOnEntry": false,
 			// Command line arguments passed to the program.
 			"args": [
-				"build/key-manager.spec.js"
+				"build/key-distributor.spec.js"
 			],
 			// Workspace relative or absolute path to the working directory of the program being debugged. Default is the current workspace.
 			"cwd": "${workspaceRoot}/",
