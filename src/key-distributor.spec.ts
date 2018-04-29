@@ -13,7 +13,7 @@ import { KeyReceiver, KeyReceiverDefinition } from "./key-receiver";
 import { RsaKey } from "./rsa-key";
 
 // define test defaults
-const UnitTestTimeout = 150000;
+const UnitTestTimeout = 1500;
 
 // global tests settings
 const receiverPath = path.join(__dirname, "../test-data/key-distributor");
@@ -133,12 +133,13 @@ describe("Test KeyDistributor class", function () {
         expect(keyDistributor.getActiveReceiversOn(new Date("2012-01-01T00:00:00.000Z")).size).to.equal(2);
     });
     it("should immediately send new keys after start", (done) => {
-        createReceiversFile("test1.json", [
+        const filename = "test1.json";
+        createReceiversFile(filename, [
             {
                 key: "receiver1.public"
             }
         ]);
-        let keyDistributor = KeyDistributorTest.fromConfigFile("test1.json");
+        let keyDistributor = KeyDistributorTest.fromConfigFile(filename);
         keyDistributor.sendKeyHandler = (receiver: KeyReceiver) => {
             expect(receiver.id).to.equal(receiver1Key.hash.toString("hex"));
         };
@@ -158,7 +159,8 @@ describe("Test KeyDistributor class", function () {
         keyDistributor.start();
     });
     it("should immediately send multiple new keys after start", (done) => {
-        createReceiversFile("test2.json", [
+        const filename = "test2.json";
+        createReceiversFile(filename, [
             {
                 key: "receiver1.public"
             },
@@ -166,7 +168,7 @@ describe("Test KeyDistributor class", function () {
                 key: "receiver2.public"
             }
         ]);
-        let keyDistributor = KeyDistributorTest.fromConfigFile("test2.json");
+        let keyDistributor = KeyDistributorTest.fromConfigFile(filename);
         let keyCount = 0;
         keyDistributor.sendKeyHandler = (receiver: KeyReceiver) => {
             keyCount += 1;
@@ -187,8 +189,9 @@ describe("Test KeyDistributor class", function () {
         };
         keyDistributor.start();
     });
-    it("should immediately add extra keys after updating file with new key to file", (done) => {
-        createReceiversFile("test3.json", [
+    it("should immediately add extra keys after updating file with extra key", (done) => {
+        const filename = "test3.json";
+        createReceiversFile(filename, [
             {
                 key: "receiver1.public"
             },
@@ -196,7 +199,7 @@ describe("Test KeyDistributor class", function () {
                 key: "receiver2.public"
             }
         ]);
-        let keyDistributor = KeyDistributorTest.fromConfigFile("test3.json");
+        let keyDistributor = KeyDistributorTest.fromConfigFile(filename);
         let keyCount = 0;
         keyDistributor.sendKeyHandler = (receiver: KeyReceiver) => {
             keyCount += 1;
@@ -211,7 +214,7 @@ describe("Test KeyDistributor class", function () {
                 case 2:
                     expect(waitPeriod).to.be.greaterThan(0);
                     expect(keyCount).to.equal(2);
-                    createReceiversFile("test3.json", [
+                    createReceiversFile(filename, [
                         {
                             key: "receiver1.public"
                         },
@@ -222,14 +225,64 @@ describe("Test KeyDistributor class", function () {
                             key: "receiver3.public"
                         }
                     ]);
-                    //keyDistributor.processReceiverConfigFile();
+                    keyCount = 0;
                     return null;
                 case 3:
                     expect(waitPeriod).to.equal(0);
                     return null;
                 case 4:
                     expect(waitPeriod).to.be.greaterThan(0);
+                    expect(keyCount).to.equal(1);
+                    return done;
+            }
+            throw new Error("Should not pass here");
+        };
+        keyDistributor.start();
+    });
+    it("should immediately resend new keys after removing key from file", (done) => {
+        const filename = "test3.json";
+        createReceiversFile(filename, [
+            {
+                key: "receiver1.public"
+            },
+            {
+                key: "receiver2.public"
+            },
+            {
+                key: "receiver3.public"
+            }
+        ]);
+        let keyDistributor = KeyDistributorTest.fromConfigFile(filename);
+        let keyCount = 0;
+        keyDistributor.sendKeyHandler = (receiver: KeyReceiver) => {
+            keyCount += 1;
+        };
+        let timeoutCount = 0;
+        keyDistributor.timeoutHandler = (waitPeriod: number) => {
+            timeoutCount += 1;
+            switch (timeoutCount) {
+                case 1:
+                    expect(waitPeriod).to.equal(0);
+                    return null;
+                case 2:
+                    expect(waitPeriod).to.be.greaterThan(0);
                     expect(keyCount).to.equal(3);
+                    createReceiversFile(filename, [
+                        {
+                            key: "receiver2.public"
+                        },
+                        {
+                            key: "receiver3.public"
+                        }
+                    ]);
+                    keyCount = 0;
+                    return null;
+                case 3:
+                    expect(waitPeriod).to.equal(0);
+                    return null;
+                case 4:
+                    expect(waitPeriod).to.be.greaterThan(0);
+                    expect(keyCount).to.equal(2);
                     return done;
             }
             throw new Error("Should not pass here");
