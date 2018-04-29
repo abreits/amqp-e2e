@@ -12,6 +12,9 @@ import { KeyDistributor, KeyDistributorDefinition } from "./key-distributor";
 import { KeyReceiver, KeyReceiverDefinition } from "./key-receiver";
 import { RsaKey } from "./rsa-key";
 
+// define test defaults
+const UnitTestTimeout = 150000;
+
 // global tests settings
 const receiverPath = path.join(__dirname, "../test-data/key-distributor");
 const senderPrivateKey = fs.readFileSync(path.join(receiverPath, "sender.private"), "utf8");
@@ -38,13 +41,29 @@ class KeyDistributorTest extends KeyDistributor {
         };
     }
 
-    static fromConfigFile(receiverFile: string) {
-        return new KeyDistributorTest({
+    static configDistributors: KeyDistributor[] = [];
+    static configFiles: Set<string> = new Set();
+    static fromConfigFile(receiverFile: string, deleteFile = true) {
+        let kd = new KeyDistributorTest({
             connection: null,
             key: senderKey,
             receiverPath: receiverPath,
             receiverFile: receiverFile
         });
+        KeyDistributorTest.configDistributors.push(kd);
+        if (deleteFile) {
+            KeyDistributorTest.configFiles.add(path.join(receiverPath, receiverFile));
+        }
+
+        return kd;
+    }
+    static cleanupTests() {
+        for (let i = 0; i < KeyDistributorTest.configDistributors.length; i += 1) {
+            KeyDistributorTest.configDistributors[i].stop();
+        }
+        for (let filename of KeyDistributorTest.configFiles) {
+            fs.unlinkSync(filename);
+        }
     }
 
     // catch setTimeout calls
@@ -66,6 +85,7 @@ class KeyDistributorTest extends KeyDistributor {
     }
 }
 
+
 function createReceiversFile(receiverFile: string, testConfig: KeyReceiverDefinition[]) {
     let configString = JSON.stringify(testConfig, null, 4);
     fs.writeFileSync(path.join(receiverPath, receiverFile), configString, { encoding: "utf8" });
@@ -79,13 +99,19 @@ function deleteReceiversFile(receiverFile: string) {
 const tu = 10; // minimal time unit in ms to successfully test on with timeout tests
 
 describe("Test KeyDistributor class", function () {
+    this.timeout(UnitTestTimeout); // define default timeout
+
+    after(function () {
+        KeyDistributorTest.cleanupTests();
+    });
+
     it("should create a receiver list from a file", () => {
-        let keyDistributor = KeyDistributorTest.fromConfigFile("receivers.json");
+        let keyDistributor = KeyDistributorTest.fromConfigFile("receivers.json", false);
         keyDistributor.processReceiverConfigFile();
         expect(keyDistributor.test.receivers.size).to.equal(4);
     });
     it("should get the active receivers on a specified Date", () => {
-        let keyDistributor = KeyDistributorTest.fromConfigFile("receivers.json");
+        let keyDistributor = KeyDistributorTest.fromConfigFile("receivers.json", false);
         keyDistributor.processReceiverConfigFile();
         expect(keyDistributor.getActiveReceiversOn(new Date("2010-06-01T00:00:00.000Z")).size).to.equal(4);
         expect(keyDistributor.getActiveReceiversOn(new Date("2010-02-01T00:00:00.000Z")).size).to.equal(3);
@@ -106,7 +132,7 @@ describe("Test KeyDistributor class", function () {
         expect(keyDistributor.getActiveReceiversOn(new Date("2002-06-01T00:00:00.000Z")).size).to.equal(2);
         expect(keyDistributor.getActiveReceiversOn(new Date("2012-01-01T00:00:00.000Z")).size).to.equal(2);
     });
-    it("should immedeately send new keys after start", (done) => {
+    it("should immediately send new keys after start", (done) => {
         createReceiversFile("test1.json", [
             {
                 key: "receiver1.public"
@@ -127,9 +153,89 @@ describe("Test KeyDistributor class", function () {
                     expect(waitPeriod).to.be.greaterThan(0);
                     return done;
             }
-            return done;
+            throw new Error("Should not pass here");
         };
         keyDistributor.start();
     });
+    it("should immediately send multiple new keys after start", (done) => {
+        createReceiversFile("test2.json", [
+            {
+                key: "receiver1.public"
+            },
+            {
+                key: "receiver2.public"
+            }
+        ]);
+        let keyDistributor = KeyDistributorTest.fromConfigFile("test2.json");
+        let keyCount = 0;
+        keyDistributor.sendKeyHandler = (receiver: KeyReceiver) => {
+            keyCount += 1;
+        };
+        let timeoutCount = 0;
+        keyDistributor.timeoutHandler = (waitPeriod: number) => {
+            timeoutCount += 1;
+            switch (timeoutCount) {
+                case 1:
+                    expect(waitPeriod).to.equal(0);
+                    return null;
+                case 2:
+                    expect(waitPeriod).to.be.greaterThan(0);
+                    expect(keyCount).to.equal(2);
+                    return done;
+            }
+            throw new Error("Should not pass here");
+        };
+        keyDistributor.start();
+    });
+    it("should immediately add extra keys after updating file with new key to file", (done) => {
+        createReceiversFile("test3.json", [
+            {
+                key: "receiver1.public"
+            },
+            {
+                key: "receiver2.public"
+            }
+        ]);
+        let keyDistributor = KeyDistributorTest.fromConfigFile("test3.json");
+        let keyCount = 0;
+        keyDistributor.sendKeyHandler = (receiver: KeyReceiver) => {
+            keyCount += 1;
+        };
+        let timeoutCount = 0;
+        keyDistributor.timeoutHandler = (waitPeriod: number) => {
+            timeoutCount += 1;
+            switch (timeoutCount) {
+                case 1:
+                    expect(waitPeriod).to.equal(0);
+                    return null;
+                case 2:
+                    expect(waitPeriod).to.be.greaterThan(0);
+                    expect(keyCount).to.equal(2);
+                    createReceiversFile("test3.json", [
+                        {
+                            key: "receiver1.public"
+                        },
+                        {
+                            key: "receiver2.public"
+                        },
+                        {
+                            key: "receiver3.public"
+                        }
+                    ]);
+                    //keyDistributor.processReceiverConfigFile();
+                    return null;
+                case 3:
+                    expect(waitPeriod).to.equal(0);
+                    return null;
+                case 4:
+                    expect(waitPeriod).to.be.greaterThan(0);
+                    expect(keyCount).to.equal(3);
+                    return done;
+            }
+            throw new Error("Should not pass here");
+        };
+        keyDistributor.start();
+    });
+
     //todo: define as much edge cases as we can
 });

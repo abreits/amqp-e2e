@@ -31,6 +31,7 @@ export interface KeyDistributorDefinition {
 
 export class KeyDistributor {
     protected started = false;
+    protected filewatcher: fs.FSWatcher;
     //semi constants
     protected keyRotationInterval; //force new key to be used after .. ms, default every 24 hours, 0 is never
     protected startUpdateWindow; // when, before new key activates, to start sending new keys to receivers in ms (default 1 hour)
@@ -58,12 +59,17 @@ export class KeyDistributor {
         this.activeReceivers = new Map();
         this.started = true;
         this.processReceiverConfigFile();
+        this.filewatcher = fs.watch(path.join(this.receiverPath, this.receiverFile), null, this.processReceiverConfigFile);
     }
 
     stop() {
         if (this.timer) {
             clearTimeout(this.timer);
             this.timer = null;
+        }
+        if (this.filewatcher) {
+            this.filewatcher.close();
+            this.filewatcher = null;
         }
         this.started = false;
     }
@@ -91,7 +97,7 @@ export class KeyDistributor {
         return activeReceivers;
     }
 
-    processReceiverConfigFile() {
+    processReceiverConfigFile = () => {
         const newReceivers: Map<string, KeyReceiver> = new Map;
         try {
             const fullFileName = path.join(this.receiverPath, this.receiverFile);
@@ -159,7 +165,6 @@ export class KeyDistributor {
 
     protected updateNow() {
         this.activeKeyChangeTime = new Date();
-        clearTimeout(this.timer);
         this.setTimeout(0);
         return;
     }
