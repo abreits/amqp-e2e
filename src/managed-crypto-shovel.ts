@@ -70,6 +70,7 @@ export class ManagedCryptoShovel {
             this.distributor.start();
         } else {
             // todo setup receiver (process both key and content messages)
+            // todo initialize keymanager (and read persisted key file)
             this.from.onMessage(this.decryptAndSend);
         }
     }
@@ -98,10 +99,11 @@ export class ManagedCryptoShovel {
     protected decryptAndSend = (message: CryptoMessage) => {
         // TODO: check message type, if new key, add to keymanager
         if (message.content[0] === 75) { // 'K'
-
+            // todo decrypt key and add to keymanager (and persist)
+        } else {
+            message.decrypt(this.keys);
+            this.to.send(message);
         }
-        message.decrypt(this.keys);
-        this.to.send(message);
     }
 }
 
