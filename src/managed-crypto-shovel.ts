@@ -10,6 +10,7 @@ import { Key } from "./key";
 import { KeyManager } from "./key-manager";
 import { KeyDistributor, KeyDistributorDefinition } from "./key-distributor";
 import { CryptoMessage, addCryptoMessage } from "./crypto-message";
+import { KeyReceiver } from "./key-receiver";
 addCryptoMessage();
 
 
@@ -25,14 +26,15 @@ export interface ManagedShovelDefinition {
 }
 
 export class ManagedCryptoShovel {
-    currentKey: Key;
-
     protected started: boolean;
-    protected encrypts; // whether it is an encryption or a decryption shovel
+    protected encrypts: boolean; // whether it is an encryption or a decryption shovel
     protected fromConfig: ConnectionDefinition;
     protected toConfig: ConnectionDefinition;
     protected from: AmqpConnection;
     protected to: AmqpConnection;
+    protected keys: KeyManager;
+    protected receiver: KeyReceiver;
+    protected distributor: KeyDistributor;
 
     constructor(configFileName: string) {
         // read file and parse json
@@ -42,26 +44,42 @@ export class ManagedCryptoShovel {
 
         this.fromConfig = config.from;
         this.toConfig = config.to;
-        this.currentKey = Key.create (null, Buffer.from(config.key, "hex"));
         this.encrypts = config.encrypts;
+
+        if (this.encrypts) {
+            // prepare key-distributor
+            this.distributor = new KeyDistributor({
+                key: config.rsaKey,
+                receiverPath: config.distributorPath,
+                receiverFile: config.distributorFile,
+                keyRotationInterval: config.keyrotationInterval,
+                startUpdateWindow: config.startUpdateWindow,
+                endUpdateWindow: config.endUpdateWindow
+            });
+        } else {
+            // prepare key-receiver
+        }
     }
 
     start() {
         this.from = new AmqpConnection(this.fromConfig);
         this.to = new AmqpConnection(this.toConfig);
         if (this.encrypts) {
+            this.distributor.connection = this.to;
             this.from.onMessage(this.encryptAndSend);
+            this.distributor.start();
         } else {
+            // todo setup receiver (process both key and content messages)
             this.from.onMessage(this.decryptAndSend);
         }
-        // TODO: start monitoring (process) for key and receiver changes
     }
 
     stop() {
+        this.distributor.stop();
         return Promise.all([
             this.from.close(),
             this.to.close()
-         ]);
+        ]);
 
     }
 
@@ -69,17 +87,20 @@ export class ManagedCryptoShovel {
         return Promise.all([
             this.from.connection.initialized,
             this.to.connection.initialized
-         ]);
+        ]);
     }
 
     protected encryptAndSend = (message: CryptoMessage) => {
-        message.encrypt(this.currentKey);
+        message.encrypt(this.keys.getEncryptionKey());
         this.to.send(message);
     }
 
     protected decryptAndSend = (message: CryptoMessage) => {
         // TODO: check message type, if new key, add to keymanager
-        message.decrypt(this.currentKey);
+        if (message.content[0] === 75) { // 'K'
+
+        }
+        message.decrypt(this.keys);
         this.to.send(message);
     }
 }

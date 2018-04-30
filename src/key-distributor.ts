@@ -19,7 +19,7 @@ import { KeyReceiver, KeyReceiverDefinition } from "./key-receiver";
 
 
 export interface KeyDistributorDefinition {
-    connection: AmqpConnection; // send keys to
+    connection?: AmqpConnection; // send keys to
     key: RsaKey; // rsa key of the sender
     receiverPath?: string; // full path of the directory where all receivers files can be found
     receiverFile?: string; // receivers definition json filename, defaults to receivers.json
@@ -37,7 +37,7 @@ export class KeyDistributor {
     protected startUpdateWindow; // when, before new key activates, to start sending new keys to receivers in ms (default 1 hour)
     protected endUpdateWindow; // when, before new key activates, all new keys should be sent  (default 55 minutes)
 
-    protected connection: AmqpConnection;
+    connection: AmqpConnection;
     protected key: RsaKey;
     protected receiverPath: string; // full path of the directory where all receivers files can be found
     protected receiverFile: string; // // receivers definition json filename, defaults to 'receivers.json'

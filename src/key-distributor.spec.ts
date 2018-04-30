@@ -15,6 +15,9 @@ import { RsaKey } from "./rsa-key";
 // define test defaults
 const UnitTestTimeout = 1500;
 const tu = 10; // minimal time unit in ms to successfully test on with timeout tests
+let keyRotationInterval = tu * 8;
+let startUpdateWindow = tu * 6;
+let endUpdateWindow = tu * 2;
 
 // global tests settings
 const receiverPath = path.join(__dirname, "../test-data/key-distributor");
@@ -85,14 +88,14 @@ class KeyDistributorTest extends KeyDistributor {
     }
 
     // catch setTimeout calls
-    timeoutHandler: (waitPeriod: number) => () => void;
+    timeoutHandler: (waitPeriod: number) => (() => void) | number;
     setTimeout(waitPeriod: number) {
         let done = this.timeoutHandler(waitPeriod);
-        if (done) {
+        if (typeof done === "number") {
+            super.setTimeout(done);
+        } else if (done) {
             this.stop();
             done();
-        } else if (typeof done === "number") {
-            super.setTimeout(done);
         } else {
             super.setTimeout(waitPeriod);
         }
@@ -159,6 +162,7 @@ describe("Test KeyDistributor class", function () {
         ]);
         let keyDistributor = KeyDistributorTest.create(filename);
         keyDistributor.sendKeyHandler = (receiver: KeyReceiver) => {
+            // expect the key to be sent to receiver1
             expect(receiver.id).to.equal(receiver1Key.hash.toString("hex"));
         };
         let timeoutCount = 0;
@@ -166,9 +170,11 @@ describe("Test KeyDistributor class", function () {
             timeoutCount += 1;
             switch (timeoutCount) {
                 case 1:
+                    // initialize
                     expect(waitPeriod).to.equal(0);
                     return;
                 case 2:
+                    // expect the key to be updated after a 'nextkeychange interval'
                     expect(waitPeriod).to.be.greaterThan(0);
                     return done;
             }
@@ -196,10 +202,12 @@ describe("Test KeyDistributor class", function () {
             timeoutCount += 1;
             switch (timeoutCount) {
                 case 1:
+                    // initialize
                     expect(waitPeriod).to.equal(0);
                     return;
                 case 2:
                     expect(waitPeriod).to.be.greaterThan(0);
+                    // expect a key to be sent to both receivers
                     expect(keyCount).to.equal(2);
                     return done;
             }
@@ -227,11 +235,13 @@ describe("Test KeyDistributor class", function () {
             timeoutCount += 1;
             switch (timeoutCount) {
                 case 1:
+                    // initialize
                     expect(waitPeriod).to.equal(0);
                     return;
                 case 2:
                     expect(waitPeriod).to.be.greaterThan(0);
                     expect(keyCount).to.equal(2);
+                    // add key to config
                     createReceiversFile(filename, [
                         {
                             key: "receiver1.public"
@@ -246,10 +256,12 @@ describe("Test KeyDistributor class", function () {
                     keyCount = 0;
                     return;
                 case 3:
+                    // expect immediate update
                     expect(waitPeriod).to.equal(0);
                     return;
                 case 4:
                     expect(waitPeriod).to.be.greaterThan(0);
+                    // expect only the new receiver to receive a key update
                     expect(keyCount).to.equal(1);
                     return done;
             }
@@ -280,11 +292,13 @@ describe("Test KeyDistributor class", function () {
             timeoutCount += 1;
             switch (timeoutCount) {
                 case 1:
+                    // initialize
                     expect(waitPeriod).to.equal(0);
                     return null;
                 case 2:
                     expect(waitPeriod).to.be.greaterThan(0);
                     expect(keyCount).to.equal(3);
+                    // remove active key from config
                     createReceiversFile(filename, [
                         {
                             key: "receiver2.public"
@@ -296,9 +310,11 @@ describe("Test KeyDistributor class", function () {
                     keyCount = 0;
                     return null;
                 case 3:
+                    // should immediately react to deleted active receiver
                     expect(waitPeriod).to.equal(0);
                     return null;
                 case 4:
+                    // remaining active receivers should have received a new key
                     expect(waitPeriod).to.be.greaterThan(0);
                     expect(keyCount).to.equal(2);
                     return done;
@@ -320,9 +336,6 @@ describe("Test KeyDistributor class", function () {
                 key: "receiver3.public"
             }
         ]);
-        let keyRotationInterval = tu * 10;
-        let startUpdateWindow = tu * 6;
-        let endUpdateWindow = tu * 3;
         let keyDistributor = KeyDistributorTest.create({
             receiverFile: filename,
             keyRotationInterval: keyRotationInterval,
@@ -347,17 +360,17 @@ describe("Test KeyDistributor class", function () {
                     return;
                 case 3:
                     expect(waitPeriod).to.be.greaterThan(0);
-                    expect(waitPeriod).to.be.lessThan(keyRotationInterval - startUpdateWindow + 1);
+                    expect(waitPeriod).to.be.lessThan(keyRotationInterval - startUpdateWindow + 2);
                     expect(keyCount).to.equal(1);
                     return null;
                 case 4:
                     expect(waitPeriod).to.be.greaterThan(0);
-                    expect(waitPeriod).to.be.lessThan((startUpdateWindow - endUpdateWindow) / 2 + 1);
+                    expect(waitPeriod).to.be.lessThan((startUpdateWindow - endUpdateWindow) / 2 + 2);
                     expect(keyCount).to.equal(2);
                     return null;
                 case 5:
                     expect(waitPeriod).to.be.greaterThan(0);
-                    expect(waitPeriod).to.be.lessThan(endUpdateWindow + 1);
+                    expect(waitPeriod).to.be.lessThan(endUpdateWindow + 2);
                     expect(keyCount).to.equal(3);
                     return done;
             }
@@ -365,5 +378,56 @@ describe("Test KeyDistributor class", function () {
         };
         keyDistributor.start();
     });
-    //todo: define as much edge cases as we can
+    it("should space out resend new keys after key rotation interval", (done) => {
+        const filename = "test5.json";
+        createReceiversFile(filename, [
+            {
+                key: "receiver1.public"
+            },
+            {
+                key: "receiver2.public"
+            },
+            {
+                key: "receiver3.public"
+            }
+        ]);
+        let keyDistributor = KeyDistributorTest.create({
+            receiverFile: filename,
+            keyRotationInterval: keyRotationInterval,
+            startUpdateWindow: startUpdateWindow,
+            endUpdateWindow: endUpdateWindow
+        });
+        let keyCount = 0;
+        keyDistributor.sendKeyHandler = (receiver: KeyReceiver) => {
+            keyCount += 1;
+        };
+        let timeoutCount = 0;
+        keyDistributor.timeoutHandler = (waitPeriod: number) => {
+            timeoutCount += 1;
+            switch (timeoutCount) {
+                case 1:
+                    expect(waitPeriod).to.equal(0);
+                    return;
+                case 2:
+                    expect(waitPeriod).to.be.greaterThan(0);
+                    expect(keyCount).to.equal(3);
+                    keyCount = 0;
+                    return;
+                case 3:
+                    expect(waitPeriod).to.be.greaterThan(0);
+                    expect(waitPeriod).to.be.lessThan(keyRotationInterval - startUpdateWindow + 2);
+                    expect(keyCount).to.equal(1);
+                    // make interval to exceed endUpdateInterval
+                    return startUpdateWindow - endUpdateWindow + 1;
+                case 4:
+                    // expect all remaining keys to be sent at once
+                    expect(waitPeriod).to.be.lessThan(endUpdateWindow + 2);
+                    expect(keyCount).to.equal(3);
+                    return done;
+            }
+            throw new Error("Should not pass here");
+        };
+        keyDistributor.start();
+    });
+    //add more edge cases?
 });
