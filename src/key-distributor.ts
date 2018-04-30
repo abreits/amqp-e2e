@@ -59,7 +59,7 @@ export class KeyDistributor {
         this.activeReceivers = new Map();
         this.started = true;
         this.processReceiverConfigFile();
-        this.filewatcher = fs.watch(path.join(this.receiverPath, this.receiverFile), null, this.processReceiverConfigFile);
+        this.filewatcher = fs.watch(path.join(this.receiverPath, this.receiverFile), null, this.watchReceiverConfigFile);
     }
 
     stop() {
@@ -74,6 +74,7 @@ export class KeyDistributor {
         this.started = false;
     }
 
+    protected lastReceivers: string;
     protected receivers: Map<string, KeyReceiver> = new Map;
     protected activeReceivers: Map<string, KeyReceiver> = new Map;
 
@@ -97,11 +98,22 @@ export class KeyDistributor {
         return activeReceivers;
     }
 
+    watchReceiverConfigFile = () => {
+        // console.log("Config file changed: " + this.receiverFile);
+        this.processReceiverConfigFile();
+    }
+
     processReceiverConfigFile = () => {
         const newReceivers: Map<string, KeyReceiver> = new Map;
         try {
             const fullFileName = path.join(this.receiverPath, this.receiverFile);
             const receiverDefinitionString = fs.readFileSync(fullFileName, "utf8");
+            // check if config file really changed (some OSes call this multiple times for a single file change)
+            if (receiverDefinitionString === this.lastReceivers) {
+                return;
+            } else {
+                this.lastReceivers = receiverDefinitionString;
+            }
             // console.log("Reading file ", fullFileName);
             const receiverDefinitions = JSON.parse(receiverDefinitionString) as KeyReceiverDefinition[];
             for (let i = 0; i < receiverDefinitions.length; i += 1) {
@@ -196,7 +208,11 @@ export class KeyDistributor {
                 this.keys.setEncryptionKey(this.nextKey);
                 this.activeKey = this.nextKey;
                 this.nextKey = null;
-                waitPeriod = this.nextActiveKeyChangetime.getTime() - Date.now();
+                this.activeKeyChangeTime = this.nextActiveKeyChangetime;
+                waitPeriod = this.activeKeyChangeTime.getTime() - Date.now() - this.startUpdateWindow;
+            } else {
+                // wait until next key active
+                waitPeriod = timeUntilNextKeyActive;
             }
         } else {
             // spread out key distribution to receivers in the remaining period
@@ -205,7 +221,7 @@ export class KeyDistributor {
                 let [name, receiver] = this.nextKeyNotSent.entries().next().value;
                 this.sendNextKey(receiver);
                 this.nextKeySent.set(name, receiver);
-                this.nextKeySent.delete(name);
+                this.nextKeyNotSent.delete(name);
             }
             timeUntilNextKeyActive = this.activeKeyChangeTime.getTime() - Date.now();
             if (this.nextKeyNotSent.size > 0) {
@@ -213,9 +229,13 @@ export class KeyDistributor {
                 let updateRange = timeUntilNextKeyActive - this.endUpdateWindow;
                 updateRange = updateRange < 0 ? 0 : updateRange;
                 waitPeriod = updateRange / this.nextKeyNotSent.size;
+                // console.log("Keys not sent: " + this.nextKeyNotSent.size);
+                // console.log("interval to send in: " + updateRange);
+                // console.log("now waiting for: ", waitPeriod);
             } else {
                 // all keys sent, wait until next key active
                 waitPeriod = timeUntilNextKeyActive;
+                // console.log("all keys sent, waiting for next key change: ", waitPeriod);
             }
         }
         // set next timeout

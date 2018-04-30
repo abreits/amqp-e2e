@@ -39,7 +39,7 @@ RUN npm install
 # needed to keep the docker version of the libraries separate from the local version
 VOLUME ["/src", "/src/node_modules"]
 # default node debug port
-EXPOSE 5858
+EXPOSE 9229
 
 # define the default settings (default settings are settings for dev)
 ENV AMQP_SRC_CONNECTION_URL=amqp://rabbitmq

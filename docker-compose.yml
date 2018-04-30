@@ -23,7 +23,7 @@ services:
     build: .
     image: abreits/dev_amqp_e2e
     ports:
-     - 5858:5858  # node.js debugging passthrough to host
+     - 9229:9229  # node.js debugging passthrough to host
     volumes:
      - .:/src/
     environment:

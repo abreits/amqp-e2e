@@ -34,16 +34,19 @@
             ]
         },
         {
-            "taskName": "debug",
+            "taskName": "debug mocha tests",
             "suppressTaskName": true,
             "isBuildCommand": false,
             "isBackground": false,
             "args": [
                 "node",
-                "--debug-brk",
+                "--inspect-brk=0.0.0.0:9229",
                 "--nolazy",
-                "/src/node_modules/mocha/bin/_mocha",
-                "build/crypto-message.spec.js"
+                "/src/node_modules/.bin/mocha",
+                "--no-timeouts",
+				"--require",
+				"source-map-support/register",
+                "build/*.spec.js"
             ]
         }
     ]

@@ -5,37 +5,25 @@
 		{
 			"type": "node",
 			"request": "attach",
-			"name": "Docker: debug task",
-			"port": 5858,
+			"name": "Attach",
 			"address": "localhost",
+			"port": 9229,
+			"protocol": "inspector",
 			"localRoot": "${workspaceFolder}",
-			"remoteRoot": "/usr/src/app",
+			"remoteRoot": "/src/",
 			"sourceMaps": true,
-			"preLaunchTask": "debug",
-			"protocol": "inspector"
 		},
 		{
-			"request": "launch",
-			// Name of configuration; appears in the launch configuration drop down menu.
-			"name": "Run crypto-message.spec",
-			// Type of configuration. Possible values: "node", "mono".
 			"type": "node",
-			// Workspace relative or absolute path to the program.
-			"program": "${workspaceRoot}/node_modules/mocha/bin/_mocha",
-			// Automatically stop program after launch.
-			"stopOnEntry": false,
-			// Command line arguments passed to the program.
-			"args": [
-				"build/crypto-message.spec.js"
-			],
-			// Workspace relative or absolute path to the working directory of the program being debugged. Default is the current workspace.
-			"cwd": "${workspaceRoot}/",
-			// Workspace relative or absolute path to the runtime executable to be used. Default is the runtime executable on the PATH.
-			"runtimeExecutable": null,
-			// Environment variables passed to the program.
-			"env": {
-				"NODE_ENV": "production"
-			}
+			"request": "attach",
+			"name": "Docker: debug mocha tests",
+			"port": 9229,
+			"address": "localhost",
+			"localRoot": "${workspaceFolder}",
+			"remoteRoot": "/src/",
+			"sourceMaps": true,
+			"preLaunchTask": "debug mocha tests",
+			"protocol": "inspector"
 		},
 		{
 			"request": "launch",
@@ -49,6 +37,9 @@
 			"stopOnEntry": false,
 			// Command line arguments passed to the program.
 			"args": [
+				"--no-timeouts",
+				"--require",
+				"source-map-support/register",
 				"build/key-distributor.spec.js"
 			],
 			// Workspace relative or absolute path to the working directory of the program being debugged. Default is the current workspace.
@@ -59,41 +50,6 @@
 			"env": {
 				"NODE_ENV": "production"
 			}
-		},
-		{
-			"request": "launch",
-			// Name of configuration; appears in the launch configuration drop down menu.
-			"name": "Run mocha integration",
-			// Type of configuration. Possible values: "node", "mono".
-			"type": "node",
-			// Workspace relative or absolute path to the program.
-			"program": "${workspaceRoot}/node_modules/mocha/bin/_mocha",
-			// Automatically stop program after launch.
-			"stopOnEntry": false,
-			// Command line arguments passed to the program.
-			"args": [
-				"transpiled/amqp-ts.spec-i.js"
-			],
-			// Workspace relative or absolute path to the working directory of the program being debugged. Default is the current workspace.
-			"cwd": "${workspaceRoot}/",
-			// Workspace relative or absolute path to the runtime executable to be used. Default is the runtime executable on the PATH.
-			"runtimeExecutable": null,
-			// Environment variables passed to the program.
-			"env": {
-				"NODE_ENV": "production"
-			}
-		},
-		{
-			"request": "attach",
-			"name": "Attach",
-			"type": "node",
-			// TCP/IP address. Default is "localhost".
-			"address": "localhost",
-			// Port to attach to.
-			"port": 5858,
-			"sourceMaps": true,
-			"remoteRoot": "/src/",
-			"localRoot": "${workspaceRoot}/"
 		}
 	]
 }
