@@ -47,15 +47,17 @@ export class KeyManager {
     }
 
     persist() {
-        let keyList: string[] = [];
-        for (let lookup in this.keys) {
-            keyList.push(this.keys[lookup].export());
+        if (this.persistFile) {
+            let keyList: string[] = [];
+            for (let lookup in this.keys) {
+                keyList.push(this.keys[lookup].export());
+            }
+            let exportStruct: PersistFormat = { l: keyList };
+            if (this.encryptionKey) {
+                exportStruct.e = this.encryptionKey.id.toString("base64");
+            }
+            fs.writeFileSync(this.persistFile, JSON.stringify(exportStruct), { encoding: "utf8" });
         }
-        let exportStruct: PersistFormat = { l: keyList };
-        if (this.encryptionKey) {
-            exportStruct.e = this.encryptionKey.id.toString("base64");
-        }
-        fs.writeFileSync(this.persistFile, JSON.stringify(exportStruct), { encoding: "utf8" });
     }
 
     add(key: Key) {

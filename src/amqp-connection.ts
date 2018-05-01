@@ -15,7 +15,7 @@ export interface QueueDefinition {
     options?: Amqp.Queue.DeclarationOptions;
 }
 
-export interface ConnectionDefinition {
+export interface ConnectionConfig {
     connectionUrl: string;
     binding: ExchangeDefinition | QueueDefinition;
 }
@@ -24,7 +24,7 @@ export class AmqpConnection {
     readonly connection: Amqp.Connection;
     readonly binding: Amqp.Exchange | Amqp.Queue;
 
-    constructor(definition: ConnectionDefinition) {
+    constructor(definition: ConnectionConfig) {
         this.connection = new Amqp.Connection(definition.connectionUrl);
         if ((<QueueDefinition>definition.binding).queue) {
             const def = definition.binding as QueueDefinition;

@@ -13,16 +13,16 @@ const MIN_DATE = new Date(-8640000000000000);
 import { KEY_LENGTH } from "./crypto-message";
 import { Key } from "./key";
 import { KeyManager, KEYID_LENGTH } from "./key-manager";
-import { AmqpConnection, ConnectionDefinition } from "./amqp-connection";
+import { AmqpConnection, ConnectionConfig } from "./amqp-connection";
 import { RsaKey } from "./rsa-key";
 import { KeyReceiver, KeyReceiverDefinition } from "./key-receiver";
 
 
-export interface KeyDistributorDefinition {
+export interface KeyDistributorConfig {
     connection?: AmqpConnection; // send keys to
-    key: RsaKey; // rsa key of the sender
-    receiverPath?: string; // full path of the directory where all receivers files can be found
-    receiverFile?: string; // receivers definition json filename, defaults to receivers.json
+    rsaKey: RsaKey; // rsa key of the sender
+    receiverRsaKeyFolder?: string; // full path of the directory where all receivers public key files can be found
+    receiverConfigFile?: string; // receivers definition json filename, defaults to receivers.json
 
     keyRotationInterval?: number; //force new key to be used after .. ms, default every 24 hours, 0 is never
     startUpdateWindow?: number; // when, before new key activates, to start sending new keys to receivers in ms (default 1 hour)
@@ -33,33 +33,36 @@ export class KeyDistributor {
     protected started = false;
     protected filewatcher: fs.FSWatcher;
     //semi constants
-    protected keyRotationInterval; //force new key to be used after .. ms, default every 24 hours, 0 is never
+    protected keyRotationInterval; // force new key to be used after .. ms, default every 24 hours, 0 is never
     protected startUpdateWindow; // when, before new key activates, to start sending new keys to receivers in ms (default 1 hour)
     protected endUpdateWindow; // when, before new key activates, all new keys should be sent  (default 55 minutes)
 
-    connection: AmqpConnection;
-    protected key: RsaKey;
-    protected receiverPath: string; // full path of the directory where all receivers files can be found
-    protected receiverFile: string; // // receivers definition json filename, defaults to 'receivers.json'
+    protected connection: AmqpConnection;
+    protected rsaKey: RsaKey;
+    protected receiverRsaKeyFolder: string; // folder where all receivers public keys files can be found, defaults to "/config/rsakeys/"
+    protected receiverConfigFile: string; // receivers definition json filename, defaults to "/config/receivers.json"
 
-    constructor(def: KeyDistributorDefinition) {
-        this.connection = def.connection;
-        this.key = def.key;
-        this.receiverPath = def.receiverPath;
-        this.receiverFile = def.receiverFile || "receivers.json";
-        this.keyRotationInterval = def.keyRotationInterval ? def.keyRotationInterval : 24 * 3600000;
-        this.startUpdateWindow = def.startUpdateWindow ? def.startUpdateWindow : 3600000;
-        this.endUpdateWindow = def.endUpdateWindow ? def.endUpdateWindow : 3300000;
+    constructor(config: KeyDistributorConfig) {
+        this.connection = config.connection;
+        this.rsaKey = config.rsaKey;
+        this.receiverRsaKeyFolder = config.receiverRsaKeyFolder || "/config/rsakeys/";
+        this.receiverConfigFile = config.receiverConfigFile || "/config/receivers.json";
+        this.keyRotationInterval = config.keyRotationInterval ? config.keyRotationInterval : 24 * 3600000;
+        this.startUpdateWindow = config.startUpdateWindow ? config.startUpdateWindow : 3600000;
+        this.endUpdateWindow = config.endUpdateWindow ? config.endUpdateWindow : 3300000;
     }
 
-    start() {
+    start(connection?: AmqpConnection) {
+        if (connection) {
+            this.connection = connection;
+        }
         this.nextKey = null;
         this.nextKeySent = new Map();
         this.nextKeyNotSent = new Map();
         this.activeReceivers = new Map();
         this.started = true;
         this.processReceiverConfigFile();
-        this.filewatcher = fs.watch(path.join(this.receiverPath, this.receiverFile), null, this.watchReceiverConfigFile);
+        this.filewatcher = fs.watch(this.receiverConfigFile, null, this.watchReceiverConfigFile);
     }
 
     stop() {
@@ -106,8 +109,7 @@ export class KeyDistributor {
     processReceiverConfigFile = () => {
         const newReceivers: Map<string, KeyReceiver> = new Map;
         try {
-            const fullFileName = path.join(this.receiverPath, this.receiverFile);
-            const receiverDefinitionString = fs.readFileSync(fullFileName, "utf8");
+            const receiverDefinitionString = fs.readFileSync(this.receiverConfigFile, "utf8");
             // check if config file really changed (some OSes call this multiple times for a single file change)
             if (receiverDefinitionString === this.lastReceivers) {
                 return;
@@ -117,11 +119,11 @@ export class KeyDistributor {
             // console.log("Reading file ", fullFileName);
             const receiverDefinitions = JSON.parse(receiverDefinitionString) as KeyReceiverDefinition[];
             for (let i = 0; i < receiverDefinitions.length; i += 1) {
-                const receiver = KeyReceiver.create(receiverDefinitions[i], this.receiverPath);
+                const receiver = KeyReceiver.create(receiverDefinitions[i], this.receiverRsaKeyFolder);
                 newReceivers.set(receiver.id, receiver);
             }
         } catch {
-            console.log("Error reading file ", path.join(this.receiverPath, this.receiverFile));
+            console.log("Error reading file ", this.receiverConfigFile);
             //todo: log error parsing receiver config file
         }
         // save old status for comparison
@@ -253,8 +255,12 @@ export class KeyDistributor {
     }
 
     protected sendNextKey(receiver: KeyReceiver) {
-        const message = new Amqp.Message(this.nextKey.encrypt(receiver.receiverKey, this.key));
-        this.connection.send(message);
+        const message = new Amqp.Message(this.nextKey.encrypt(receiver.receiverKey, this.rsaKey));
+        if (this.connection) {
+            this.connection.send(message);
+        } else {
+            //todo: log no connection defined
+        }
     }
 
     get nextActiveKeyChangetime(): Date {

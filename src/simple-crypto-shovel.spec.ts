@@ -42,8 +42,8 @@ describe("Test SimpleCryptoShovel class", function () {
 
     it("should create an encryption and decryption shovel and send data through it", (done) => {
         // create the sending and receiving shovel
-        encryptionShovel = new SimpleCryptoShovel(path.join(configFolder, "send-shovel-config.json"));
-        decryptionShovel = new SimpleCryptoShovel(path.join(configFolder, "receive-shovel-config.json"));
+        encryptionShovel = new SimpleCryptoShovel(path.join(configFolder, "simple-send-shovel-config.json"));
+        decryptionShovel = new SimpleCryptoShovel(path.join(configFolder, "simple-receive-shovel-config.json"));
         encryptionShovel.start();
         decryptionShovel.start();
 

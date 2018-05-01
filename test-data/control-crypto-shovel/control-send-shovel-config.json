@@ -1,12 +1,13 @@
 {
+    "type": "control-sender",
     "publicKeyFile": "test-data/rsa-key/sender.public",
     "privateKeyFile": "test-data/rsa-key/sender.private",
-    "receiversConfigFile": "test-data/managed-crypto-shovel/receivers.json",
-    "encrypts": true,
+    "receiversKeyFolder": "test-data/rsa-key/",
+    "receiversConfigFile": "test-data/control-crypto-shovel/receivers.json",
     "from": {
         "connectionUrl": "amqp://open_amqp",
         "binding": {
-            "exchange": "managed-src-exchange",
+            "exchange": "control-src-exchange",
             "exchangeType": "fanout",
             "options": {
                 "autoDelete": true
@@ -16,7 +17,7 @@
     "to": {
         "connectionUrl": "amqp://open_amqp",
         "binding": {
-            "exchange": "managed-encrypted-exchange",
+            "exchange": "control-encrypted-exchange",
             "exchangeType": "fanout",
             "options": {
                 "autoDelete": true
