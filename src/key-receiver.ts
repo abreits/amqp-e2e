@@ -33,25 +33,27 @@ export class KeyReceiver {
     startDate?: Date; // if not defined always start
     endDate?: Date; // if not defined keeps running
 
-    static create(def: KeyReceiverDefinition, receiverDir: string) {
+    static create(config: KeyReceiverDefinition, receiverDir: string) {
         const receiver = new KeyReceiver();
         try {
-            receiver.receiverKey = new RsaKey(fs.readFileSync(path.join(receiverDir, def.key), "utf8"));
-        } catch {
+            receiver.receiverKey = new RsaKey(fs.readFileSync(path.join(receiverDir, config.key), "utf8"));
+        } catch (e) {
+            console.log(e);
+            console.log(path.join(receiverDir, config.key));
             throw new Error("Rsa Public Key not found");
         }
-        if (def.startDate) {
+        if (config.startDate) {
             try {
-                receiver.startDate = new Date(def.startDate);
+                receiver.startDate = new Date(config.startDate);
             } catch {
                 throw new Error("Unrecognisable startDate, use UTC");
             }
         } else {
             receiver.startDate = MIN_DATE;
         }
-        if (def.endDate) {
+        if (config.endDate) {
             try {
-                receiver.endDate = new Date(def.endDate);
+                receiver.endDate = new Date(config.endDate);
             } catch {
                 throw new Error("Unrecognisable endDate, use UTC");
             }

@@ -122,8 +122,9 @@ export class KeyDistributor {
                 const receiver = KeyReceiver.create(receiverDefinitions[i], this.receiverRsaKeyFolder);
                 newReceivers.set(receiver.id, receiver);
             }
-        } catch {
-            console.log("Error reading file ", this.receiverConfigFile);
+        } catch (e) {
+            console.log(e);
+            console.log("Error reading file ", this.receiverConfigFile, this.receiverRsaKeyFolder);
             //todo: log error parsing receiver config file
         }
         // save old status for comparison

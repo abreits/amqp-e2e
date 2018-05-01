@@ -20,14 +20,15 @@ let startUpdateWindow = tu * 6;
 let endUpdateWindow = tu * 2;
 
 // global tests settings
-const distributorTestPath = path.join(__dirname, "../test-data/key-distributor");
-const senderPrivateKey = fs.readFileSync(path.join(distributorTestPath, "sender.private"), "utf8");
-const senderPublicKey = fs.readFileSync(path.join(distributorTestPath, "sender.public"), "utf8");
+const distributorTestFolder = path.join(__dirname, "../test-data/key-distributor");
+const rsaKeyFolder = path.join(__dirname, "../test-data/rsa-keys");
+const senderPrivateKey = fs.readFileSync(path.join(rsaKeyFolder, "sender.private"), "utf8");
+const senderPublicKey = fs.readFileSync(path.join(rsaKeyFolder, "sender.public"), "utf8");
 const senderKey = new RsaKey(senderPublicKey, senderPrivateKey);
-const receiver1Key = new RsaKey(fs.readFileSync(path.join(distributorTestPath, "receiver1.public"), "utf8"));
-const receiver2Key = new RsaKey(fs.readFileSync(path.join(distributorTestPath, "receiver2.public"), "utf8"));
-const receiver3Key = new RsaKey(fs.readFileSync(path.join(distributorTestPath, "receiver3.public"), "utf8"));
-const receiver4Key = new RsaKey(fs.readFileSync(path.join(distributorTestPath, "receiver4.public"), "utf8"));
+const receiver1Key = new RsaKey(fs.readFileSync(path.join(rsaKeyFolder, "receiver1.public"), "utf8"));
+const receiver2Key = new RsaKey(fs.readFileSync(path.join(rsaKeyFolder, "receiver2.public"), "utf8"));
+const receiver3Key = new RsaKey(fs.readFileSync(path.join(rsaKeyFolder, "receiver3.public"), "utf8"));
+const receiver4Key = new RsaKey(fs.readFileSync(path.join(rsaKeyFolder, "receiver4.public"), "utf8"));
 
 // test wrapper for the KeyDistributor class
 // expose a few internals for tsting and add test setup and cleanup tools
@@ -56,16 +57,16 @@ class KeyDistributorTest extends KeyDistributor {
             distributor = new KeyDistributorTest({
                 connection: null,
                 rsaKey: senderKey,
-                receiverRsaKeyFolder: distributorTestPath,
-                receiverConfigFile: path.join(distributorTestPath, receiverConfigFile)
+                receiverRsaKeyFolder: rsaKeyFolder,
+                receiverConfigFile: path.join(distributorTestFolder, receiverConfigFile)
             });
         } else {
             receiverConfigFile = config.receiverConfigFile;
             distributor = new KeyDistributorTest({
                 connection: null,
                 rsaKey: senderKey,
-                receiverRsaKeyFolder: distributorTestPath,
-                receiverConfigFile: path.join(distributorTestPath, receiverConfigFile),
+                receiverRsaKeyFolder: rsaKeyFolder,
+                receiverConfigFile: path.join(distributorTestFolder, receiverConfigFile),
                 keyRotationInterval: config.keyRotationInterval,
                 startUpdateWindow: config.startUpdateWindow,
                 endUpdateWindow: config.endUpdateWindow
@@ -73,7 +74,7 @@ class KeyDistributorTest extends KeyDistributor {
         }
         KeyDistributorTest.configDistributors.push(distributor);
         if (deleteFile) {
-            KeyDistributorTest.configFiles.add(path.join(distributorTestPath, receiverConfigFile));
+            KeyDistributorTest.configFiles.add(path.join(distributorTestFolder, receiverConfigFile));
         }
 
         return distributor;
@@ -111,11 +112,11 @@ class KeyDistributorTest extends KeyDistributor {
 
 function createReceiversFile(receiverFile: string, testConfig: KeyReceiverDefinition[]) {
     let configString = JSON.stringify(testConfig, null, 4);
-    fs.writeFileSync(path.join(distributorTestPath, receiverFile), configString, { encoding: "utf8" });
+    fs.writeFileSync(path.join(distributorTestFolder, receiverFile), configString, { encoding: "utf8" });
 }
 
 function deleteReceiversFile(receiverFile: string) {
-    fs.unlinkSync(path.join(distributorTestPath, receiverFile));
+    fs.unlinkSync(path.join(distributorTestFolder, receiverFile));
 }
 
 
@@ -144,8 +145,8 @@ describe("Test KeyDistributor class", function () {
         let keyDistributor = new KeyDistributorTest({
             connection: null,
             rsaKey: senderKey,
-            receiverConfigFile: path.join(distributorTestPath, "receivers.json"),
-            receiverRsaKeyFolder: distributorTestPath
+            receiverConfigFile: path.join(distributorTestFolder, "receivers.json"),
+            receiverRsaKeyFolder: rsaKeyFolder
         });
         keyDistributor.processReceiverConfigFile();
         expect(keyDistributor.getActiveReceiversOn(new Date("2010-06-01T00:00:00.000Z")).size).to.equal(4);

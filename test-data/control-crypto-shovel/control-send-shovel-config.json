@@ -1,9 +1,9 @@
 {
     "type": "control-sender",
-    "publicKeyFile": "test-data/rsa-key/sender.public",
-    "privateKeyFile": "test-data/rsa-key/sender.private",
-    "receiversKeyFolder": "test-data/rsa-key/",
-    "receiversConfigFile": "test-data/control-crypto-shovel/receivers.json",
+    "publicKeyFile": "${workspaceRoot}/test-data/rsa-keys/sender.public",
+    "privateKeyFile": "${workspaceRoot}/test-data/rsa-keys/sender.private",
+    "receiverRsaKeyFolder": "${workspaceRoot}/test-data/rsa-keys/",
+    "receiverConfigFile": "${workspaceRoot}/test-data/control-crypto-shovel/receivers.json",
     "from": {
         "connectionUrl": "amqp://open_amqp",
         "binding": {

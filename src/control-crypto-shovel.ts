@@ -4,6 +4,7 @@
  */
 
 import * as fs from "fs";
+import * as path from "path";
 import * as Amqp from "amqp-ts";
 import { AmqpConnection, ConnectionConfig, ExchangeDefinition, QueueDefinition } from "./amqp-connection";
 import { Key } from "./key";
@@ -53,7 +54,12 @@ export class ControlCryptoShovel {
     constructor(configFileName: string) {
         // read file and parse json
         // TODO: error handling
-        const configString = fs.readFileSync(configFileName, "utf8");
+        let configString = fs.readFileSync(configFileName, "utf8");
+        // replace ${workspaceRoot} with workspace root dir
+        const workspaceRoot = path.join(__dirname, "..");
+        //console.log("before: ", configString);
+        configString = configString.split("${workspaceRoot}").join(workspaceRoot);
+        //console.log("after: ", configString);
         const config = JSON.parse(configString) as ControlShovelConfig;
 
         this.myRsaKey = new RsaKey(config.publicRsaKeyFile, config.privateRsaKeyFile);
