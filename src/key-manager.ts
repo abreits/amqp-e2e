@@ -16,7 +16,7 @@ type PersistFormat = {
  *  KeyManager class, with persistance to file
  */
 export class KeyManager {
-    protected keys: { [lookup: string]: Key } = {};
+    protected keys: Map<string, Key> = new Map();//{ [lookup: string]: Key } = {};
     protected encryptionKey: Key;
     protected persistFile: string;
 
@@ -49,8 +49,8 @@ export class KeyManager {
     persist() {
         if (this.persistFile) {
             let keyList: string[] = [];
-            for (let lookup in this.keys) {
-                keyList.push(this.keys[lookup].export());
+            for (const [id, key] of this.keys) {
+                keyList.push(key.export());
             }
             let exportStruct: PersistFormat = { l: keyList };
             if (this.encryptionKey) {
@@ -66,19 +66,19 @@ export class KeyManager {
                 key.id = crypto.randomBytes(KEYID_LENGTH);
             } while (this.get(key.id));
         }
-        let lookup = key.id.toString("base64");
-        this.keys[lookup] = key;
+        let id = key.id.toString("base64");
+        this.keys.set(id, key);
     }
 
     delete(key: Key) {
-        let lookup = key.id.toString("base64");
-        delete this.keys[lookup];
+        let id = key.id.toString("base64");
+        this.keys.delete(id);
     }
 
-    get(id: Buffer) {
-        if (id) {
-            let lookup = id.toString("base64");
-            return this.keys[lookup];
+    get(idBuffer: Buffer) {
+        if (idBuffer) {
+            let id = idBuffer.toString("base64");
+            return this.keys.get(id);
         } else {
             throw new Error("Empty KeyManager id");
         }
@@ -103,9 +103,8 @@ export class KeyManager {
         } else {
             let created;
             this.encryptionKey = undefined;
-            for (let lookup in this.keys) {
+            for (const [id, key] of this.keys) {
                 const now = new Date();
-                const key = this.keys[lookup];
                 if ((!key.startDate || key.startDate) < now && (!key.endDate || key.endDate > now)) {
                     if (!created || created < key.created) {
                         created = key.created;
@@ -123,10 +122,9 @@ export class KeyManager {
     cleanup() {
         const now = new Date();
 
-        for (let lookup in this.keys) {
-            let key = this.keys[lookup];
+        for (const [id, key] of this.keys) {
             if (key.endDate && key.endDate >= now) {
-                delete this.keys[lookup];
+                this.keys.delete(id);
             }
         }
     }
