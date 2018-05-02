@@ -14,7 +14,7 @@ import { RsaKey } from "./rsa-key";
 
 // define test defaults
 const UnitTestTimeout = 1500;
-const tu = 10; // minimal time unit in ms to successfully test on with timeout tests
+const tu = 20; // minimal time unit in ms to successfully test on with timeout tests
 let keyRotationInterval = tu * 8;
 let startUpdateWindow = tu * 6;
 let endUpdateWindow = tu * 2;

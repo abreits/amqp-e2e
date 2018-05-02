@@ -1,18 +1,5 @@
 [
     {
         "key": "receiver1.public"
-    },
-    {
-        "key": "receiver2.public",
-        "startDate": "2010-01-01T00:00:00.000Z",
-        "endDate": "2011-01-01T00:00:00.000Z"
-    },
-    {
-        "key": "receiver3.public",
-        "startDate": "2010-04-01T00:00:00.000Z"
-    },
-    {
-        "key": "receiver4.public",
-        "endDate": "2010-08-01T00:00:00.000Z"
     }
 ]

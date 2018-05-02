@@ -98,17 +98,22 @@ export class Key {
         const receiver = encrypted.slice(1, 17);
         if (receiver.compare(decryptKey.hash) !== 0) {
             // log key not intended for this receiver
+            // console.log("not for this receiver:");
+            // console.log("  expected: ", decryptKey.hash.toString("hex"));
+            // console.log("  received: ", receiver.toString("hex"));
             return null;
         }
         const encryptedSize = encrypted.readUInt16LE(17);
         const decrypted = decryptKey.privateDecrypt(encrypted.slice(19, encryptedSize + 19));
-        if(verifyKey.verify(decrypted, encrypted.slice(encryptedSize + 19))) {
+        const ok = verifyKey.verify(decrypted, encrypted.slice(encryptedSize + 19));
+        if(ok) {
             const key = new Key();
             key.endDate = new Date(decrypted.readDoubleLE(0));
             key.key = decrypted.slice(8, 40);
             key.id = decrypted.slice(40);
             return key;
         } else {
+            console.log("signature not correct");
             throw new Error("Key signature failed!");
         }
     }

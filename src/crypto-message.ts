@@ -55,6 +55,7 @@ function encrypt(using: Key | KeyManager) {
         p: this.properties,
         r: this.fields ? this.fields.routingKey : undefined
     }), "utf8");
+
     const metadataSize = Buffer.allocUnsafe(2);
     if(metadata.length > 65535) {
         throw new Error("Metadata too large (>64K)");

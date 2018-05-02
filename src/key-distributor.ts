@@ -81,7 +81,7 @@ export class KeyDistributor {
     protected receivers: Map<string, KeyReceiver> = new Map;
     protected activeReceivers: Map<string, KeyReceiver> = new Map;
 
-    protected keys = new KeyManager();
+    readonly keys = new KeyManager();
     protected activeKey: Key;
     protected activeKeyChangeTime: Date;
 
@@ -90,6 +90,10 @@ export class KeyDistributor {
     protected nextKeyNotSent: Map<string, KeyReceiver> = new Map;
 
     protected timer: any;
+
+    getActiveKey() {
+        return this.keys.getEncryptionKey();
+    }
 
     getActiveReceiversOn(date: Date) {
         const activeReceivers = new Map();

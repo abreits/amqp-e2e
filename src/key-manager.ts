@@ -16,7 +16,7 @@ type PersistFormat = {
  *  KeyManager class, with persistance to file
  */
 export class KeyManager {
-    protected keys: Map<string, Key> = new Map();//{ [lookup: string]: Key } = {};
+    readonly keys: Map<string, Key> = new Map();//{ [lookup: string]: Key } = {};
     protected encryptionKey: Key;
     protected persistFile: string;
 

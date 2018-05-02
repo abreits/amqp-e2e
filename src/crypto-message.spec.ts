@@ -69,8 +69,7 @@ describe("Test crypto-message module", () => {
         cryptoMsg.fields = { routingKey: routingKey };
         cryptoMsg.encrypt(testKeyManager);
         expect(cryptoMsg.fields).to.be.undefined;
-        //cryptoMsg.decrypt(testKeyManager);
-        expect(cryptoMsg.decrypt(testKeyManager)).to.deep.equal(routingKey);
+        expect(cryptoMsg.decrypt(testKeyManager)).to.equal(routingKey);
     });
     it("'encrypt metadata should not exceed 64K", () => {
         const routingKey = Buffer.alloc(66000);

@@ -1,7 +1,7 @@
 {
     "type": "control-sender",
-    "publicKeyFile": "${workspaceRoot}/test-data/rsa-keys/sender.public",
-    "privateKeyFile": "${workspaceRoot}/test-data/rsa-keys/sender.private",
+    "publicRsaKeyFile": "${workspaceRoot}/test-data/rsa-keys/sender.public",
+    "privateRsaKeyFile": "${workspaceRoot}/test-data/rsa-keys/sender.private",
     "receiverRsaKeyFolder": "${workspaceRoot}/test-data/rsa-keys/",
     "receiverConfigFile": "${workspaceRoot}/test-data/control-crypto-shovel/receivers.json",
     "from": {

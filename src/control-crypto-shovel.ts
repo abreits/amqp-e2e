@@ -44,25 +44,40 @@ export class ControlCryptoShovel {
     protected toConfig: ConnectionConfig;
     protected from: AmqpConnection;
     protected to: AmqpConnection;
-    protected keys: KeyManager;
+    readonly keys: KeyManager;
     protected receiver: KeyReceiver;
 
     protected distributor: KeyDistributor;
 
     protected started: boolean;
+    protected distributorTimeout: any;
 
     constructor(configFileName: string) {
         // read file and parse json
-        // TODO: error handling
-        let configString = fs.readFileSync(configFileName, "utf8");
-        // replace ${workspaceRoot} with workspace root dir
-        const workspaceRoot = path.join(__dirname, "..");
-        //console.log("before: ", configString);
-        configString = configString.split("${workspaceRoot}").join(workspaceRoot);
-        //console.log("after: ", configString);
-        const config = JSON.parse(configString) as ControlShovelConfig;
+        let config;
+        try {
+            let configString = fs.readFileSync(configFileName, "utf8");
+            // replace ${workspaceRoot} with workspace root dir
+            const workspaceRoot = path.join(__dirname, "..").split("\\").join("/");
+            configString = configString.split("${workspaceRoot}").join(workspaceRoot);
+            config = JSON.parse(configString) as ControlShovelConfig;
+        } catch (e) {
+            console.log("Error reading ControlCryptoShovel config file");
+            console.log(e);
+            throw new Error("Error reading ControlCryptoShovel config file");
+        }
+        let publicPem, privatePem, senderPublicPem;
+        try {
+            publicPem = fs.readFileSync(config.publicRsaKeyFile);
+            privatePem = fs.readFileSync(config.privateRsaKeyFile);
+            if (config.senderPublicRsaKeyFile) {
+                senderPublicPem = fs.readFileSync(config.senderPublicRsaKeyFile);
+            }
+        } catch {
+            throw new Error("Error reading ControlCryptoShovel rsa key file");
+        }
 
-        this.myRsaKey = new RsaKey(config.publicRsaKeyFile, config.privateRsaKeyFile);
+        this.myRsaKey = new RsaKey(publicPem, privatePem);
         this.fromConfig = config.from;
         this.toConfig = config.to;
         this.type = config.type;
@@ -82,21 +97,25 @@ export class ControlCryptoShovel {
             case "control-receiver":
                 // prepare key-receiver
                 this.keys = new KeyManager(config.persistFile);
-                this.senderRsaKey = new RsaKey(config.senderPublicRsaKeyFile);
+                this.senderRsaKey = new RsaKey(senderPublicPem);
                 break;
             default:
                 throw new Error("Illegal control-crypto-shovel type");
         }
-
     }
 
-    start() {
+    start(deferDistributor?: number) {
         this.from = new AmqpConnection(this.fromConfig);
         this.to = new AmqpConnection(this.toConfig);
         switch (this.type) {
             case "control-sender":
                 this.from.onMessage(this.encryptAndSend);
-                this.distributor.start(this.to);
+                if (deferDistributor) {
+                    this.distributorTimeout = setTimeout(() => {
+                        this.distributorTimeout = null;
+                        this.distributor.start(this.to);
+                    }, deferDistributor);
+                }
                 break;
             case "control-receiver":
                 // todo setup receiver (process both key and content messages)
@@ -109,7 +128,19 @@ export class ControlCryptoShovel {
     }
 
     stop() {
-        this.distributor.stop();
+        switch (this.type) {
+            case "control-sender":
+                if (this.distributorTimeout) {
+                    clearTimeout(this.distributorTimeout);
+                } else {
+                    this.distributor.stop();
+                }
+                break;
+            case "control-receiver":
+                break;
+            default:
+                throw new Error("Illegal control-crypto-shovel type");
+        }
         return Promise.all([
             this.from.close(),
             this.to.close()
@@ -125,7 +156,7 @@ export class ControlCryptoShovel {
     }
 
     protected encryptAndSend = (message: CryptoMessage) => {
-        message.encrypt(this.keys.getEncryptionKey());
+        message.encrypt(this.distributor.keys);
         this.to.send(message);
     }
 
@@ -140,8 +171,8 @@ export class ControlCryptoShovel {
                 this.keys.persist();
             }
         } else {
-            message.decrypt(this.keys);
-            this.to.send(message);
+            const routingKey = message.decrypt(this.keys);
+            this.to.send(message, routingKey);
         }
     }
 }
