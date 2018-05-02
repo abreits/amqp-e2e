@@ -51,7 +51,7 @@ describe("Test ControlCryptoShovel class", function () {
             expect(msg.fields.routingKey).to.equal(testRoutingKey);
             done();
         }
-        encryptionShovel.start(100);
+        encryptionShovel.start(150);
         decryptionShovel.start();
         // wait for everything to initialize
         Promise.all([
@@ -72,7 +72,7 @@ describe("Test ControlCryptoShovel class", function () {
                 const msg = new Amqp.Message(testMsg);
                 msg.sendTo(send, testRoutingKey);
                 //done();
-            }, 200);
+            }, 300);
         });
     });
 });
