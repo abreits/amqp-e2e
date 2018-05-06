@@ -17,6 +17,7 @@ export interface KeyReceiverDefinition {
     key: string; // filename of the receiver rsa public key pem file
     startDate?: string | number; // UTC date-time, if not defined always start
     endDate?: string | number; // UTC date-time, if not defined never end
+    resend?: boolean; // for key-distributor, if true, resend key to this receiver
 }
 
 export interface FullKeyReceiverDefinition {
@@ -32,6 +33,7 @@ export class KeyReceiver {
     keyManager?: KeyManager;
     startDate?: Date; // if not defined always start
     endDate?: Date; // if not defined keeps running
+    resend?: boolean; // for key-distributor, if true, resend key to this receiver
 
     static create(config: KeyReceiverDefinition, receiverDir: string) {
         const receiver = new KeyReceiver();
@@ -60,6 +62,7 @@ export class KeyReceiver {
         } else {
             receiver.endDate = MAX_DATE;
         }
+        receiver.resend = config.resend;
         return receiver;
     }
 

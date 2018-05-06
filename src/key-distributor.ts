@@ -32,6 +32,7 @@ export interface KeyDistributorConfig {
 export class KeyDistributor {
     protected started = false;
     protected filewatcher: fs.FSWatcher;
+    protected lastFileChange: Date = MIN_DATE;
     //semi constants
     protected keyRotationInterval; // force new key to be used after .. ms, default every 24 hours, 0 is never
     protected startUpdateWindow; // when, before new key activates, to start sending new keys to receivers in ms (default 1 hour)
@@ -115,9 +116,11 @@ export class KeyDistributor {
         try {
             const receiverDefinitionString = fs.readFileSync(this.receiverConfigFile, "utf8");
             // check if config file really changed (some OSes call this multiple times for a single file change)
-            if (receiverDefinitionString === this.lastReceivers) {
+            if (((Date.now() - this.lastFileChange.getTime()) < 100) && receiverDefinitionString === this.lastReceivers) {
+                this.lastFileChange = new Date();
                 return;
             } else {
+                this.lastFileChange = new Date();
                 this.lastReceivers = receiverDefinitionString;
             }
             // console.log("Reading file ", fullFileName);
@@ -142,6 +145,12 @@ export class KeyDistributor {
         }
         // check if we are updating keys at the moment
         if (this.nextKey) {
+            // remove all receivers that must be resent from this.nextKeysent
+            for (let [id, receiver] of this.receivers) {
+                if(receiver.resend) {
+                    this.nextKeySent.delete(id);
+                }
+            }
             // check if we have already updated receivers that are no longer defined or active
             for (let [name, receiver] of this.nextKeySent) {
                 if (!this.activeReceivers.get(name)) {
@@ -168,9 +177,9 @@ export class KeyDistributor {
                     return this.updateNow();
                 }
             }
-            // check if there are new receivers active
+            // check if there are new receivers active, or receivers that need their key resent
             for (let [name, receiver] of this.activeReceivers) {
-                if (!oldActiveReceivers.get(name)) {
+                if (!oldActiveReceivers.get(name) || receiver.resend) {
                     this.nextKeyNotSent.set(name, receiver);
                 }
             }
