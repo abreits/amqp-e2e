@@ -440,7 +440,7 @@ describe("Test KeyDistributor class", function () {
         keyDistributor.start();
     });
 
-    it("should resend a key", (done) => {
+    it("should resend a key to a receiver when resend is set to true", (done) => {
         const filename = "test6.json";
         createReceiversFile(filename, [
             {
