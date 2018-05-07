@@ -12,6 +12,7 @@ import { AmqpConnection } from "./amqp-connection";
 import { RsaKey } from "./rsa-key";
 import { Key } from "./key";
 import { KeyManager } from "./key-manager";
+import { Log } from "./log";
 
 export interface KeyReceiverDefinition {
     key: string; // filename of the receiver rsa public key pem file

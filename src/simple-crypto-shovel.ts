@@ -6,6 +6,7 @@ import * as fs from "fs";
 import * as Amqp from "amqp-ts";
 import { AmqpConnection, ConnectionConfig, ExchangeDefinition, QueueDefinition } from "./amqp-connection";
 import { Key } from "./key";
+import { Log } from "./log";
 import { CryptoMessage, addCryptoMessage } from "./crypto-message";
 addCryptoMessage();
 

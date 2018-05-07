@@ -16,7 +16,7 @@ import { KeyManager, KEYID_LENGTH } from "./key-manager";
 import { AmqpConnection, ConnectionConfig } from "./amqp-connection";
 import { RsaKey } from "./rsa-key";
 import { KeyReceiver, KeyReceiverDefinition } from "./key-receiver";
-
+import { Log } from "./log";
 
 export interface KeyDistributorConfig {
     connection?: AmqpConnection; // send keys to

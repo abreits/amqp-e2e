@@ -4,6 +4,7 @@
 
 import * as crypto from "crypto";
 import * as forge from "node-forge";
+import { Log } from "./log";
 
 export class RsaKey {
     readonly publicPem: string;

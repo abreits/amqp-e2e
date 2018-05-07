@@ -6,9 +6,11 @@ import * as fs from "fs";
 
 import { RsaKey } from "./rsa-key";
 import { KEY_LENGTH } from "./crypto-message";
+import { Log } from "./log";
 
 const MAX_DATE = new Date(8640000000000000);
 const MIN_DATE = new Date(-8640000000000000);
+
 /**
  *  key class, defines a new key and initializes it with a random key and id
  */
@@ -97,16 +99,16 @@ export class Key {
         }
         const receiver = encrypted.slice(1, 17);
         if (receiver.compare(decryptKey.hash) !== 0) {
-            // log key not intended for this receiver
-            // console.log("not for this receiver:");
-            // console.log("  expected: ", decryptKey.hash.toString("hex"));
-            // console.log("  received: ", receiver.toString("hex"));
+            Log.info("Ignoring received key, not intended for me", {
+                myId: decryptKey.hash.toString("hex"),
+                intendedId: receiver.toString("hex")
+            });
             return null;
         }
         const encryptedSize = encrypted.readUInt16LE(17);
         const decrypted = decryptKey.privateDecrypt(encrypted.slice(19, encryptedSize + 19));
         const ok = verifyKey.verify(decrypted, encrypted.slice(encryptedSize + 19));
-        if(ok) {
+        if (ok) {
             const key = new Key();
             key.endDate = new Date(decrypted.readDoubleLE(0));
             key.key = decrypted.slice(8, 40);

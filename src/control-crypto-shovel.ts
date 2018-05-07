@@ -13,6 +13,7 @@ import { KeyDistributor, KeyDistributorConfig } from "./key-distributor";
 import { CryptoMessage, addCryptoMessage } from "./crypto-message";
 import { KeyReceiver } from "./key-receiver";
 import { RsaKey } from "./rsa-key";
+import { Log } from "./log";
 addCryptoMessage();
 
 

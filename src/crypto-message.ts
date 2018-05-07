@@ -6,6 +6,7 @@ import * as Amqp from "amqp-ts";
 
 import { Key } from "./key";
 import { KeyManager, KEYID_LENGTH } from "./key-manager";
+import { Log } from "./log";
 
 /* encrypted message format with AES-256-GCM:
  * [8 bytes keyId (optional)][16 bytes initialisationVector][16 bytes tag][encryptedData]

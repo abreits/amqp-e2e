@@ -5,6 +5,7 @@ import * as crypto from "crypto";
 import * as fs from "fs";
 
 import { Key } from "./key";
+import { Log } from "./log";
 
 export const KEYID_LENGTH = 8;
 

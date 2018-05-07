@@ -26,7 +26,8 @@
   "homepage": "https://github.com/abreits/amqp-e2e#readme",
   "dependencies": {
     "amqp-ts": "^1.4.0",
-    "node-forge": "^0.7.5"
+    "node-forge": "^0.7.5",
+    "winston": "^3.0.0-rc5"
   },
   "devDependencies": {
     "@types/chai": "^4.1.2",
