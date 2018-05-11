@@ -1,5 +1,7 @@
 /* log.ts ** winston logging framework initialization and configuration
  * 2018-05-07 by Ab Reitsma
+ *
+ * default logs only to file. change here if you want to change the logging (see winston docs)
  */
 
 import * as winston from "winston";
@@ -38,39 +40,33 @@ export class Log {
         });
     }
 
-    static debug(message: string, details?: any) {
+    static send(level: string, message: string, details?: any) {
         if (Log.logger) {
-            Log.logger.debug(message, {
-                metadata: details
-            });
+            try {
+                Log.logger.log(level, message, { metadata: details });
+            } catch {
+                Log.logger.log(level, message, details);
+            }
         }
+    }
+
+    static debug(message: string, details?: any) {
+        Log.send("debug", message, details);
     }
 
     static verbose(message: string, details?: any) {
-        if (Log.logger) {
-            Log.logger.verbose(message, {
-                metadata: details
-            });
-        }
+        Log.send("verbose", message, details);
     }
 
     static info(message: string, details?: any) {
-        if (Log.logger) {
-            Log.logger.info(message, {
-                metadata: details
-            });
-        }
+        Log.send("info", message, details);
     }
 
     static warn(message: string, details?: any) {
-        if (Log.logger) {
-            Log.logger.warn(message, details);
-        }
+        Log.send("warn", message, details);
     }
 
     static error(message: string, details?: any) {
-        if (Log.logger) {
-            Log.logger.error(message, details);
-        }
+        Log.send("error", message, details);
     }
 }

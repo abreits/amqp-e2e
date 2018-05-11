@@ -41,6 +41,7 @@ export class KeyManager {
                         this.setEncryptionKey(this.get(new Buffer(parsed.e, "base64")));
                     }
                 } catch (e) {
+                    Log.error("Error importing KeyManager persistFile", e);
                     throw new Error("Error importing KeyManager persistFile");
                 }
             }
@@ -81,6 +82,7 @@ export class KeyManager {
             let id = idBuffer.toString("base64");
             return this.keys.get(id);
         } else {
+            Log.error("Empty KeyManager id");
             throw new Error("Empty KeyManager id");
         }
     }
@@ -99,6 +101,7 @@ export class KeyManager {
             if (this.get(key.id) === key) { // make sure the key exists inside the key manager
                 this.encryptionKey = key;
             } else {
+                Log.error("key not in KeyManager");
                 throw new Error("key not in KeyManager");
             }
         } else {

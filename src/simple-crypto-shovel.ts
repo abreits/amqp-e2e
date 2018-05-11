@@ -48,6 +48,7 @@ export class SimpleCryptoShovel {
         } else if (this.type === "simple-receiver") {
             this.from.onMessage(this.decryptAndSend);
         } else {
+            Log.error("Illegal simple-crypto-shovel type");
             throw new Error("Illegal simple-crypto-shovel type");
         }
     }

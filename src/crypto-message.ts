@@ -59,6 +59,7 @@ function encrypt(using: Key | KeyManager) {
 
     const metadataSize = Buffer.allocUnsafe(2);
     if(metadata.length > 65535) {
+        Log.error("Metadata too large (>64K)");
         throw new Error("Metadata too large (>64K)");
     }
     metadataSize.writeUInt16LE(metadata.length, 0);
@@ -88,11 +89,13 @@ function decrypt(using: Key | KeyManager) {
         // expect msgType to be message 'M'
         const msgType = encryptedMessage.toString("utf8", offset, offset += 1);
         if(msgType !== "M") {
+            Log.error("Not an encrypted managed message");
             throw Error("Not an encrypted managed message");        }
         // expect keyid in encrypted message
         const keyId = encryptedMessage.slice(offset, offset += KEYID_LENGTH);
         key = using.get(keyId);
         if (key === undefined) {
+            Log.error("Key id does not exist", keyId);
             throw new Error("Key id does not exist");
         }
     } else {

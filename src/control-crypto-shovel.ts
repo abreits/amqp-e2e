@@ -63,8 +63,7 @@ export class ControlCryptoShovel {
             configString = configString.split("${workspaceRoot}").join(workspaceRoot);
             config = JSON.parse(configString) as ControlShovelConfig;
         } catch (e) {
-            console.log("Error reading ControlCryptoShovel config file");
-            console.log(e);
+            Log.error("Error reading ControlCryptoShovel config file", e);
             throw new Error("Error reading ControlCryptoShovel config file");
         }
         let publicPem, privatePem, senderPublicPem;
@@ -74,7 +73,8 @@ export class ControlCryptoShovel {
             if (config.senderPublicRsaKeyFile) {
                 senderPublicPem = fs.readFileSync(config.senderPublicRsaKeyFile);
             }
-        } catch {
+        } catch (e) {
+            Log.error("Error reading ControlCryptoShovel rsa key file", e);
             throw new Error("Error reading ControlCryptoShovel rsa key file");
         }
 
@@ -101,6 +101,7 @@ export class ControlCryptoShovel {
                 this.senderRsaKey = new RsaKey(senderPublicPem);
                 break;
             default:
+                Log.error("Illegal control-crypto-shovel type", this.type);
                 throw new Error("Illegal control-crypto-shovel type");
         }
     }
@@ -124,6 +125,7 @@ export class ControlCryptoShovel {
                 this.from.onMessage(this.decryptAndSend);
                 break;
             default:
+                Log.error("Illegal control-crypto-shovel type", this.type);
                 throw new Error("Illegal control-crypto-shovel type");
         }
     }
@@ -140,6 +142,7 @@ export class ControlCryptoShovel {
             case "control-receiver":
                 break;
             default:
+                Log.error("Illegal control-crypto-shovel type", this.type);
                 throw new Error("Illegal control-crypto-shovel type");
         }
         return Promise.all([

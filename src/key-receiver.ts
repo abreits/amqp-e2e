@@ -43,12 +43,14 @@ export class KeyReceiver {
         } catch (e) {
             console.log(e);
             console.log(path.join(receiverDir, config.key));
+            Log.error("Rsa Public Key not found");
             throw new Error("Rsa Public Key not found");
         }
         if (config.startDate) {
             try {
                 receiver.startDate = new Date(config.startDate);
             } catch {
+                Log.error("Unrecognisable startDate, use UTC", config.startDate);
                 throw new Error("Unrecognisable startDate, use UTC");
             }
         } else {
@@ -58,6 +60,7 @@ export class KeyReceiver {
             try {
                 receiver.endDate = new Date(config.endDate);
             } catch {
+                Log.error("Unrecognisable endDate, use UTC", config.endDate);
                 throw new Error("Unrecognisable endDate, use UTC");
             }
         } else {

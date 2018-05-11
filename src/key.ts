@@ -66,6 +66,7 @@ export class Key {
         if (!this.toEncrypt) {
             // should have a key and an id
             if (!this.id || !this.key) {
+                Log.error("Trying to encrypt incomplete Key");
                 throw new Error("Trying to encrypt incomplete Key");
             }
             const activateOff = Buffer.allocUnsafe(8);
@@ -95,6 +96,7 @@ export class Key {
     static decrypt(encrypted: Buffer, decryptKey: RsaKey, verifyKey: RsaKey) {
         const msgType = encrypted.toString("utf8", 0, 1);
         if (msgType !== "K") {
+            Log.error("Not a key");
             throw new Error("Not a key");
         }
         const receiver = encrypted.slice(1, 17);
@@ -115,7 +117,7 @@ export class Key {
             key.id = decrypted.slice(40);
             return key;
         } else {
-            console.log("signature not correct");
+            Log.error("signature not correct");
             throw new Error("Key signature failed!");
         }
     }
