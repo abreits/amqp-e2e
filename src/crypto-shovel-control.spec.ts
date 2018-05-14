@@ -8,7 +8,7 @@ const expect = Chai.expect;
 import * as path from "path";
 
 import * as Amqp from "amqp-ts";
-import { ControlCryptoShovel } from "./control-crypto-shovel";
+import { ControlCryptoShovel } from "./crypto-shovel-control";
 
 // define test defaults
 const ConnectionUrl = "amqp://open_amqp";
