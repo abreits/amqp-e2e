@@ -36,7 +36,7 @@ gulp.task("build", done => {
   runSequence("compile", "test:dot", done);
 });
 gulp.task("build:clean", done => {
-  runSequence("clean", "compile", "test:dot", done);
+  runSequence("clean", "compile", "test:integration", done);
 });
 
 gulp.task("watch", ["clean", "build"], function () {
@@ -119,7 +119,7 @@ gulp.task("test:dot", function () {
 
 // integration tests, at the moment more an extended version of the unit tests
 gulp.task("test:integration", function () {
-  return gulp.src("build/**/*.spec-i.js", {
+  return gulp.src(["build/**/*.spec.js", "build/**/*.spec-i.js"], {
     read: false
   })
     .pipe(mocha({
