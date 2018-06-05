@@ -113,11 +113,13 @@ describe("Test the Key class", () => {
     it("should encrypt a key and decrypt a key", () => {
         const key = Key.create();
         key.id = Buffer.from("bUcmwfgbWhE=", "base64");
+        key.startDate = new Date(1523956965337);        
         key.endDate = new Date(1524043365337);
 
         const encryptedKey = key.encrypt(receiver1Key, senderKey);
         const decryptedKey = Key.decrypt(encryptedKey, receiver1Key, senderKey);
 
+        expect(decryptedKey.startDate).to.deep.equal(key.startDate);
         expect(decryptedKey.endDate).to.deep.equal(key.endDate);
         expect(decryptedKey.key).to.deep.equal(key.key);
         expect(decryptedKey.id).to.deep.equal(key.id);
@@ -125,6 +127,7 @@ describe("Test the Key class", () => {
     it("should not decrypt a key intended for another receiver", () => {
         const key = Key.create();
         key.id = Buffer.from("bUcmwfgbWhE=", "base64");
+        key.startDate = new Date(1523956965337);
         key.endDate = new Date(1524043365337);
 
         const encryptedKey = key.encrypt(receiver1Key, senderKey);

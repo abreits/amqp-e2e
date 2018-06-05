@@ -9,7 +9,7 @@ import * as Chai from "chai";
 const expect = Chai.expect;
 
 import { KeyDistributor, KeyDistributorConfig } from "./key-distributor";
-import { KeyReceiver, KeyReceiverDefinition } from "./key-receiver";
+import { KeyReceiver, KeyReceiverDefinition, KeyReceiverDefinitions } from "./key-receiver";
 import { RsaKey } from "./rsa-key";
 
 // define test defaults
@@ -36,7 +36,7 @@ class KeyDistributorTest extends KeyDistributor {
     // to inspect internal state of the class
     get test() {
         return {
-            receivers: this.receivers,
+            receivers: this.decryptReceivers,
             activeReceivers: this.activeReceivers,
             keys: this.keys,
             activeKeyChangeTime: this.activeKeyChangeTime,
@@ -51,22 +51,22 @@ class KeyDistributorTest extends KeyDistributor {
     static configFiles: Set<string> = new Set();
     static create(config: string | { [id: string]: any }, deleteFile = true) {
         let distributor: KeyDistributorTest;
-        let receiverConfigFile: string;
+        let keyReceiverConfigFile: string;
         if (typeof config === "string") {
-            receiverConfigFile = config;
+            keyReceiverConfigFile = config;
             distributor = new KeyDistributorTest({
                 connection: null,
                 rsaKey: senderKey,
-                receiverRsaKeyFolder: rsaKeyFolder,
-                receiverConfigFile: path.join(distributorTestFolder, receiverConfigFile)
+                keyReceiverRsaKeyFolder: rsaKeyFolder,
+                keyReceiverConfigFile: path.join(distributorTestFolder, keyReceiverConfigFile)
             });
         } else {
-            receiverConfigFile = config.receiverConfigFile;
+            keyReceiverConfigFile = config.keyReceiverConfigFile;
             distributor = new KeyDistributorTest({
                 connection: null,
                 rsaKey: senderKey,
-                receiverRsaKeyFolder: rsaKeyFolder,
-                receiverConfigFile: path.join(distributorTestFolder, receiverConfigFile),
+                keyReceiverRsaKeyFolder: rsaKeyFolder,
+                keyReceiverConfigFile: path.join(distributorTestFolder, keyReceiverConfigFile),
                 keyRotationInterval: config.keyRotationInterval,
                 startUpdateWindow: config.startUpdateWindow,
                 endUpdateWindow: config.endUpdateWindow
@@ -74,7 +74,7 @@ class KeyDistributorTest extends KeyDistributor {
         }
         KeyDistributorTest.configDistributors.push(distributor);
         if (deleteFile) {
-            KeyDistributorTest.configFiles.add(path.join(distributorTestFolder, receiverConfigFile));
+            KeyDistributorTest.configFiles.add(path.join(distributorTestFolder, keyReceiverConfigFile));
         }
 
         return distributor;
@@ -110,7 +110,7 @@ class KeyDistributorTest extends KeyDistributor {
 }
 
 
-function createReceiversFile(receiverFile: string, testConfig: KeyReceiverDefinition[]) {
+function createReceiversFile(receiverFile: string, testConfig: KeyReceiverDefinitions) {
     let configString = JSON.stringify(testConfig, null, 4);
     fs.writeFileSync(path.join(distributorTestFolder, receiverFile), configString, { encoding: "utf8" });
 }
@@ -129,13 +129,13 @@ describe("Test KeyDistributor class", function () {
 
     it("should create a receiver list from a file", () => {
         let keyDistributor = KeyDistributorTest.create("receivers.json", false);
-        keyDistributor.processReceiverConfigFile();
+        keyDistributor.processkeyReceiverConfigFile();
         expect(keyDistributor.test.receivers.size).to.equal(4);
     });
 
     it("should get the active receivers on a specified Date", () => {
         let keyDistributor = KeyDistributorTest.create("receivers.json", false);
-        keyDistributor.processReceiverConfigFile();
+        keyDistributor.processkeyReceiverConfigFile();
         expect(keyDistributor.getActiveReceiversOn(new Date("2010-06-01T00:00:00.000Z")).size).to.equal(4);
         expect(keyDistributor.getActiveReceiversOn(new Date("2010-02-01T00:00:00.000Z")).size).to.equal(3);
         expect(keyDistributor.getActiveReceiversOn(new Date("2010-10-01T00:00:00.000Z")).size).to.equal(3);
@@ -147,10 +147,10 @@ describe("Test KeyDistributor class", function () {
         let keyDistributor = new KeyDistributorTest({
             connection: null,
             rsaKey: senderKey,
-            receiverConfigFile: path.join(distributorTestFolder, "receivers.json"),
-            receiverRsaKeyFolder: rsaKeyFolder
+            keyReceiverConfigFile: path.join(distributorTestFolder, "receivers.json"),
+            keyReceiverRsaKeyFolder: rsaKeyFolder
         });
-        keyDistributor.processReceiverConfigFile();
+        keyDistributor.processkeyReceiverConfigFile();
         expect(keyDistributor.getActiveReceiversOn(new Date("2010-06-01T00:00:00.000Z")).size).to.equal(4);
         expect(keyDistributor.getActiveReceiversOn(new Date("2010-02-01T00:00:00.000Z")).size).to.equal(3);
         expect(keyDistributor.getActiveReceiversOn(new Date("2010-10-01T00:00:00.000Z")).size).to.equal(3);
@@ -160,11 +160,13 @@ describe("Test KeyDistributor class", function () {
 
     it("should immediately send new keys after start", (done) => {
         const filename = "test1.json";
-        createReceiversFile(filename, [
-            {
-                key: "receiver1.public"
-            }
-        ]);
+        createReceiversFile(filename, {
+            decrypt: [
+                {
+                    key: "receiver1.public"
+                }
+            ]
+        });
         let keyDistributor = KeyDistributorTest.create(filename);
         keyDistributor.sendKeyHandler = (receiver: KeyReceiver) => {
             // expect the key to be sent to receiver1
@@ -190,14 +192,54 @@ describe("Test KeyDistributor class", function () {
 
     it("should immediately send multiple new keys after start", (done) => {
         const filename = "test2.json";
-        createReceiversFile(filename, [
-            {
-                key: "receiver1.public"
-            },
-            {
-                key: "receiver2.public"
+        createReceiversFile(filename, {
+            decrypt: [
+                {
+                    key: "receiver1.public"
+                },
+                {
+                    key: "receiver2.public"
+                }
+            ]
+        });
+        let keyDistributor = KeyDistributorTest.create(filename);
+        let keyCount = 0;
+        keyDistributor.sendKeyHandler = (receiver: KeyReceiver) => {
+            keyCount += 1;
+        };
+        let timeoutCount = 0;
+        keyDistributor.timeoutHandler = (waitPeriod: number) => {
+            timeoutCount += 1;
+            switch (timeoutCount) {
+                case 1:
+                    // initialize
+                    expect(waitPeriod).to.equal(0);
+                    return;
+                case 2:
+                    expect(waitPeriod).to.be.greaterThan(0);
+                    // expect a key to be sent to both receivers
+                    expect(keyCount).to.equal(2);
+                    return done;
             }
-        ]);
+            throw new Error("Should not pass here");
+        };
+        keyDistributor.start();
+    });
+
+    it("should immediately send both encrypt and decrypt keys", (done) => {
+        const filename = "test2.json";
+        createReceiversFile(filename, {
+            encrypt: [
+                {
+                    key: "receiver1.public"
+                }
+            ],           
+            decrypt: [
+                {
+                    key: "receiver2.public"
+                }
+            ]
+        });
         let keyDistributor = KeyDistributorTest.create(filename);
         let keyCount = 0;
         keyDistributor.sendKeyHandler = (receiver: KeyReceiver) => {
@@ -224,14 +266,16 @@ describe("Test KeyDistributor class", function () {
 
     it("should immediately add extra keys after updating file with extra key", (done) => {
         const filename = "test3.json";
-        createReceiversFile(filename, [
-            {
-                key: "receiver1.public"
-            },
-            {
-                key: "receiver2.public"
-            }
-        ]);
+        createReceiversFile(filename, {
+            decrypt: [
+                {
+                    key: "receiver1.public"
+                },
+                {
+                    key: "receiver2.public"
+                }
+            ]
+        });
         let keyDistributor = KeyDistributorTest.create(filename);
         let keyCount = 0;
         keyDistributor.sendKeyHandler = (receiver: KeyReceiver) => {
@@ -249,17 +293,19 @@ describe("Test KeyDistributor class", function () {
                     expect(waitPeriod).to.be.greaterThan(0);
                     expect(keyCount).to.equal(2);
                     // add key to config
-                    createReceiversFile(filename, [
-                        {
-                            key: "receiver1.public"
-                        },
-                        {
-                            key: "receiver2.public"
-                        },
-                        {
-                            key: "receiver3.public"
-                        }
-                    ]);
+                    createReceiversFile(filename, {
+                        decrypt: [
+                            {
+                                key: "receiver1.public"
+                            },
+                            {
+                                key: "receiver2.public"
+                            },
+                            {
+                                key: "receiver3.public"
+                            }
+                        ]
+                    });
                     keyCount = 0;
                     return;
                 case 3:
@@ -279,17 +325,19 @@ describe("Test KeyDistributor class", function () {
 
     it("should immediately resend new keys after removing key from file", (done) => {
         const filename = "test4.json";
-        createReceiversFile(filename, [
-            {
-                key: "receiver1.public"
-            },
-            {
-                key: "receiver2.public"
-            },
-            {
-                key: "receiver3.public"
-            }
-        ]);
+        createReceiversFile(filename, {
+            decrypt: [
+                {
+                    key: "receiver1.public"
+                },
+                {
+                    key: "receiver2.public"
+                },
+                {
+                    key: "receiver3.public"
+                }
+            ]
+        });
         let keyDistributor = KeyDistributorTest.create(filename);
         let keyCount = 0;
         keyDistributor.sendKeyHandler = (receiver: KeyReceiver) => {
@@ -307,14 +355,16 @@ describe("Test KeyDistributor class", function () {
                     expect(waitPeriod).to.be.greaterThan(0);
                     expect(keyCount).to.equal(3);
                     // remove active key from config
-                    createReceiversFile(filename, [
-                        {
-                            key: "receiver2.public"
-                        },
-                        {
-                            key: "receiver3.public"
-                        }
-                    ]);
+                    createReceiversFile(filename, {
+                        decrypt: [
+                            {
+                                key: "receiver2.public"
+                            },
+                            {
+                                key: "receiver3.public"
+                            }
+                        ]
+                    });
                     keyCount = 0;
                     return null;
                 case 3:
@@ -334,19 +384,22 @@ describe("Test KeyDistributor class", function () {
 
     it("should space out resend new keys after key rotation interval", (done) => {
         const filename = "test5.json";
-        createReceiversFile(filename, [
+        createReceiversFile(filename,
             {
-                key: "receiver1.public"
-            },
-            {
-                key: "receiver2.public"
-            },
-            {
-                key: "receiver3.public"
-            }
-        ]);
+                decrypt: [
+                    {
+                        key: "receiver1.public"
+                    },
+                    {
+                        key: "receiver2.public"
+                    },
+                    {
+                        key: "receiver3.public"
+                    }
+                ]
+            });
         let keyDistributor = KeyDistributorTest.create({
-            receiverConfigFile: filename,
+            keyReceiverConfigFile: filename,
             keyRotationInterval: keyRotationInterval,
             startUpdateWindow: startUpdateWindow,
             endUpdateWindow: endUpdateWindow
@@ -390,19 +443,21 @@ describe("Test KeyDistributor class", function () {
 
     it("should space out resend new keys after key rotation interval", (done) => {
         const filename = "test5.json";
-        createReceiversFile(filename, [
-            {
-                key: "receiver1.public"
-            },
-            {
-                key: "receiver2.public"
-            },
-            {
-                key: "receiver3.public"
-            }
-        ]);
+        createReceiversFile(filename, {
+            decrypt: [
+                {
+                    key: "receiver1.public"
+                },
+                {
+                    key: "receiver2.public"
+                },
+                {
+                    key: "receiver3.public"
+                }
+            ]
+        });
         let keyDistributor = KeyDistributorTest.create({
-            receiverConfigFile: filename,
+            keyReceiverConfigFile: filename,
             keyRotationInterval: keyRotationInterval,
             startUpdateWindow: startUpdateWindow,
             endUpdateWindow: endUpdateWindow
@@ -442,19 +497,21 @@ describe("Test KeyDistributor class", function () {
 
     it("should resend a key to a receiver when resend is set to true", (done) => {
         const filename = "test6.json";
-        createReceiversFile(filename, [
-            {
-                key: "receiver1.public"
-            },
-            {
-                key: "receiver2.public"
-            },
-            {
-                key: "receiver3.public"
-            }
-        ]);
+        createReceiversFile(filename, {
+            decrypt: [
+                {
+                    key: "receiver1.public"
+                },
+                {
+                    key: "receiver2.public"
+                },
+                {
+                    key: "receiver3.public"
+                }
+            ]
+        });
         let keyDistributor = KeyDistributorTest.create({
-            receiverConfigFile: filename,
+            keyReceiverConfigFile: filename,
             keyRotationInterval: keyRotationInterval,
             startUpdateWindow: startUpdateWindow,
             endUpdateWindow: endUpdateWindow
@@ -474,18 +531,20 @@ describe("Test KeyDistributor class", function () {
                 case 2:
                     expect(waitPeriod).to.be.greaterThan(0);
                     expect(keyCount).to.equal(3);
-                    createReceiversFile(filename, [
-                        {
-                            key: "receiver1.public",
-                            resend: true
-                        },
-                        {
-                            key: "receiver2.public"
-                        },
-                        {
-                            key: "receiver3.public"
-                        }
-                    ]);
+                    createReceiversFile(filename, {
+                        decrypt: [
+                            {
+                                key: "receiver1.public",
+                                resend: true
+                            },
+                            {
+                                key: "receiver2.public"
+                            },
+                            {
+                                key: "receiver3.public"
+                            }
+                        ]
+                    });
                     return null;
                 case 3:
                     expect(waitPeriod).to.equal(0);
@@ -502,20 +561,22 @@ describe("Test KeyDistributor class", function () {
 
     it("should not reprocess unchanged file save within 100 ms", (done) => {
         const filename = "test7.json";
-        createReceiversFile(filename, [
-            {
-                key: "receiver1.public",
-                resend: true
-            },
-            {
-                key: "receiver2.public"
-            },
-            {
-                key: "receiver3.public"
-            }
-        ]);
+        createReceiversFile(filename, {
+            decrypt: [
+                {
+                    key: "receiver1.public",
+                    resend: true
+                },
+                {
+                    key: "receiver2.public"
+                },
+                {
+                    key: "receiver3.public"
+                }
+            ]
+        });
         let keyDistributor = KeyDistributorTest.create({
-            receiverConfigFile: filename,
+            keyReceiverConfigFile: filename,
             keyRotationInterval: keyRotationInterval,
             startUpdateWindow: startUpdateWindow,
             endUpdateWindow: endUpdateWindow
@@ -531,18 +592,20 @@ describe("Test KeyDistributor class", function () {
                 case 1:
                     // initialize
                     expect(waitPeriod).to.equal(0);
-                    createReceiversFile(filename, [
-                        {
-                            key: "receiver1.public",
-                            resend: true
-                        },
-                        {
-                            key: "receiver2.public"
-                        },
-                        {
-                            key: "receiver3.public"
-                        }
-                    ]);
+                    createReceiversFile(filename, {
+                        decrypt: [
+                            {
+                                key: "receiver1.public",
+                                resend: true
+                            },
+                            {
+                                key: "receiver2.public"
+                            },
+                            {
+                                key: "receiver3.public"
+                            }
+                        ]
+                    });
                     return null;
                 case 2:
                     expect(waitPeriod).to.be.greaterThan(0);

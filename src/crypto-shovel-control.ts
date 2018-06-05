@@ -29,8 +29,8 @@ export interface ControlShovelConfig {
     persistFile?: string; // path to the file contains persistance information
 
     // properties below only needed for the control-sender
-    receiverConfigFile?: string; // path to configuration file for the receivers, default "/config/receivers.json"
-    receiverRsaKeyFolder?: string; // path to folder containing receivers RSA public keys, default "/config/rsakeys/"
+    keyReceiverConfigFile?: string; // path to configuration file for the receivers, default "/config/receivers.json"
+    keyReceiverRsaKeyFolder?: string; // path to folder containing receivers RSA public keys, default "/config/rsakeys/"
     keyRotationInterval?: number; // force new key to be used after .. ms, default every 24 hours, 0 is never
     startUpdateWindow?: number; // when, before new key activates, to start sending new keys to receivers in ms, default 1 hour
     endUpdateWindow?: number; // when, before new key activates, all new keys should be sent, default 55 minutes
@@ -88,8 +88,8 @@ export class ControlCryptoShovel {
                 // prepare key-distributor
                 this.distributor = new KeyDistributor({
                     rsaKey: this.myRsaKey,
-                    receiverRsaKeyFolder: config.receiverRsaKeyFolder,
-                    receiverConfigFile: config.receiverConfigFile,
+                    keyReceiverRsaKeyFolder: config.keyReceiverRsaKeyFolder,
+                    keyReceiverConfigFile: config.keyReceiverConfigFile,
                     keyRotationInterval: config.keyRotationInterval,
                     startUpdateWindow: config.startUpdateWindow,
                     endUpdateWindow: config.endUpdateWindow

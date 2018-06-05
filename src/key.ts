@@ -69,9 +69,11 @@ export class Key {
                 Log.error("Trying to encrypt incomplete Key");
                 throw new Error("Trying to encrypt incomplete Key");
             }
+            const activateOn = Buffer.allocUnsafe(8);
+            activateOn.writeDoubleLE((this.startDate ? this.startDate : MIN_DATE).getTime(), 0);
             const activateOff = Buffer.allocUnsafe(8);
             activateOff.writeDoubleLE((this.endDate ? this.endDate : MAX_DATE).getTime(), 0);
-            this.toEncrypt = Buffer.concat([activateOff, this.key, this.id]);
+            this.toEncrypt = Buffer.concat([activateOn, activateOff, this.key, this.id]);
         }
         // only compute the sign for the content to encrypt once for all receivers
         if (!this.sign) {
@@ -112,9 +114,10 @@ export class Key {
         const ok = verifyKey.verify(decrypted, encrypted.slice(encryptedSize + 19));
         if (ok) {
             const key = new Key();
-            key.endDate = new Date(decrypted.readDoubleLE(0));
-            key.key = decrypted.slice(8, 40);
-            key.id = decrypted.slice(40);
+            key.startDate = new Date(decrypted.readDoubleLE(0));
+            key.endDate = new Date(decrypted.readDoubleLE(8));
+            key.key = decrypted.slice(16, 48);
+            key.id = decrypted.slice(48);
             return key;
         } else {
             Log.error("signature not correct");

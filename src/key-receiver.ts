@@ -21,6 +21,11 @@ export interface KeyReceiverDefinition {
     resend?: boolean; // for key-distributor, if true, resend key to this receiver
 }
 
+export interface KeyReceiverDefinitions {
+    encrypt?: KeyReceiverDefinition[];
+    decrypt: KeyReceiverDefinition[];    
+}
+
 export interface FullKeyReceiverDefinition {
     connection: AmqpConnection; // receive key udates from
     senderKey: RsaKey; // rsa public key of the sender
@@ -35,6 +40,7 @@ export class KeyReceiver {
     startDate?: Date; // if not defined always start
     endDate?: Date; // if not defined keeps running
     resend?: boolean; // for key-distributor, if true, resend key to this receiver
+    encrypt?: boolean; // for key-distributor, if true, for encrypt, if not for decrypt (default)
 
     static create(config: KeyReceiverDefinition, receiverDir: string) {
         const receiver = new KeyReceiver();

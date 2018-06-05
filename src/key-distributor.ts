@@ -10,19 +10,19 @@ import * as Amqp from "amqp-ts";
 const MAX_DATE = new Date(8640000000000000);
 const MIN_DATE = new Date(-8640000000000000);
 
-import { KEY_LENGTH } from "./crypto-message";
+import { KEY_LENGTH, CryptoMessage } from "./crypto-message";
 import { Key } from "./key";
 import { KeyManager, KEYID_LENGTH } from "./key-manager";
 import { AmqpConnection, ConnectionConfig } from "./amqp-connection";
 import { RsaKey } from "./rsa-key";
-import { KeyReceiver, KeyReceiverDefinition } from "./key-receiver";
+import { KeyReceiver, KeyReceiverDefinition, KeyReceiverDefinitions } from "./key-receiver";
 import { Log } from "./log";
 
 export interface KeyDistributorConfig {
     connection?: AmqpConnection; // send keys to
     rsaKey: RsaKey; // rsa key of the sender
-    receiverRsaKeyFolder?: string; // full path of the directory where all receivers public key files can be found
-    receiverConfigFile?: string; // receivers definition json filename, defaults to receivers.json
+    keyReceiverRsaKeyFolder?: string; // full path of the directory where all receivers public key files can be found
+    keyReceiverConfigFile?: string; // receivers definition json filename, defaults to receivers.json
 
     keyRotationInterval?: number; //force new key to be used after .. ms, default every 24 hours, 0 is never
     startUpdateWindow?: number; // when, before new key activates, to start sending new keys to receivers in ms (default 1 hour)
@@ -40,14 +40,14 @@ export class KeyDistributor {
 
     protected connection: AmqpConnection;
     protected rsaKey: RsaKey;
-    protected receiverRsaKeyFolder: string; // folder where all receivers public keys files can be found, defaults to "/config/rsakeys/"
-    protected receiverConfigFile: string; // receivers definition json filename, defaults to "/config/receivers.json"
+    protected keyReceiverRsaKeyFolder: string; // folder where all receivers public keys files can be found, defaults to "/config/rsakeys/"
+    protected keyReceiverConfigFile: string; // receivers definition json filename, defaults to "/config/receivers.json"
 
     constructor(config: KeyDistributorConfig) {
         this.connection = config.connection;
         this.rsaKey = config.rsaKey;
-        this.receiverRsaKeyFolder = config.receiverRsaKeyFolder || "/config/rsakeys/";
-        this.receiverConfigFile = config.receiverConfigFile || "/config/receivers.json";
+        this.keyReceiverRsaKeyFolder = config.keyReceiverRsaKeyFolder || "/config/rsakeys/";
+        this.keyReceiverConfigFile = config.keyReceiverConfigFile || "/config/receivers.json";
         this.keyRotationInterval = config.keyRotationInterval ? config.keyRotationInterval : 24 * 3600000;
         this.startUpdateWindow = config.startUpdateWindow ? config.startUpdateWindow : 3600000;
         this.endUpdateWindow = config.endUpdateWindow ? config.endUpdateWindow : 3300000;
@@ -62,8 +62,8 @@ export class KeyDistributor {
         this.nextKeyNotSent = new Map();
         this.activeReceivers = new Map();
         this.started = true;
-        this.processReceiverConfigFile();
-        this.filewatcher = fs.watch(this.receiverConfigFile, null, this.watchReceiverConfigFile);
+        this.processkeyReceiverConfigFile();
+        this.filewatcher = fs.watch(this.keyReceiverConfigFile, null, this.watchkeyReceiverConfigFile);
     }
 
     stop() {
@@ -79,7 +79,7 @@ export class KeyDistributor {
     }
 
     protected lastReceivers: string;
-    protected receivers: Map<string, KeyReceiver> = new Map;
+    protected decryptReceivers: Map<string, KeyReceiver> = new Map;
     protected activeReceivers: Map<string, KeyReceiver> = new Map;
 
     readonly keys = new KeyManager();
@@ -98,7 +98,7 @@ export class KeyDistributor {
 
     getActiveReceiversOn(date: Date) {
         const activeReceivers = new Map();
-        for (let [name, receiver] of this.receivers) {
+        for (let [name, receiver] of this.decryptReceivers) {
             if (receiver.startDate <= date && receiver.endDate > date) {
                 activeReceivers.set(name, receiver);
             }
@@ -106,15 +106,15 @@ export class KeyDistributor {
         return activeReceivers;
     }
 
-    watchReceiverConfigFile = () => {
+    watchkeyReceiverConfigFile = () => {
         // console.log("Config file changed: " + this.receiverFile);
-        this.processReceiverConfigFile();
+        this.processkeyReceiverConfigFile();
     }
 
-    processReceiverConfigFile = () => {
+    processkeyReceiverConfigFile = () => {
         const newReceivers: Map<string, KeyReceiver> = new Map;
         try {
-            const receiverDefinitionString = fs.readFileSync(this.receiverConfigFile, "utf8");
+            const receiverDefinitionString = fs.readFileSync(this.keyReceiverConfigFile, "utf8");
             // check if config file really changed (some OSes call this multiple times for a single file change)
             if (((Date.now() - this.lastFileChange.getTime()) < 100) && receiverDefinitionString === this.lastReceivers) {
                 this.lastFileChange = new Date();
@@ -124,19 +124,30 @@ export class KeyDistributor {
                 this.lastReceivers = receiverDefinitionString;
             }
             // console.log("Reading file ", fullFileName);
-            const receiverDefinitions = JSON.parse(receiverDefinitionString) as KeyReceiverDefinition[];
-            for (let i = 0; i < receiverDefinitions.length; i += 1) {
-                const receiver = KeyReceiver.create(receiverDefinitions[i], this.receiverRsaKeyFolder);
+            const receiverDefinitions = JSON.parse(receiverDefinitionString) as KeyReceiverDefinitions;
+            const encryptReceivers = receiverDefinitions.encrypt;
+            const decryptReceivers = receiverDefinitions.decrypt;
+            for (let i = 0; i < decryptReceivers.length; i += 1) {
+                const receiver = KeyReceiver.create(decryptReceivers[i], this.keyReceiverRsaKeyFolder);
                 newReceivers.set(receiver.id, receiver);
             }
+            // add the encryption receivers, if they exist
+            if (encryptReceivers) {
+                for (let i = 0; i < encryptReceivers.length; i += 1) {
+                    const receiver = KeyReceiver.create(encryptReceivers[i], this.keyReceiverRsaKeyFolder);
+                    receiver.encrypt = true;
+                    newReceivers.set(receiver.id, receiver);
+                }
+            }
+
         } catch (e) {
             console.log(e);
-            console.log("Error reading file ", this.receiverConfigFile, this.receiverRsaKeyFolder);
+            console.log("Error reading file ", this.keyReceiverConfigFile, this.keyReceiverRsaKeyFolder);
             //todo: log error parsing receiver config file
         }
         // save old status for comparison
         const oldActiveReceivers = this.activeReceivers;
-        this.receivers = newReceivers;
+        this.decryptReceivers = newReceivers;     
         this.activeReceivers = this.getActiveReceiversOn(new Date());
 
         // if not started we are done
@@ -146,7 +157,7 @@ export class KeyDistributor {
         // check if we are updating keys at the moment
         if (this.nextKey) {
             // remove all receivers that must be resent from this.nextKeysent
-            for (let [id, receiver] of this.receivers) {
+            for (let [id, receiver] of this.decryptReceivers) {
                 if(receiver.resend) {
                     this.nextKeySent.delete(id);
                 }
@@ -269,11 +280,11 @@ export class KeyDistributor {
     }
 
     protected sendNextKey(receiver: KeyReceiver) {
-        const message = new Amqp.Message(this.nextKey.encrypt(receiver.receiverKey, this.rsaKey));
+        const message = new Amqp.Message(this.nextKey.encrypt(receiver.receiverKey, this.rsaKey));       
         if (this.connection) {
             this.connection.send(message);
         } else {
-            //todo: log no connection defined
+            Log.warn("Unable to send message, no connection defined", this);
         }
     }
 
@@ -282,7 +293,7 @@ export class KeyDistributor {
         if (this.keyRotationInterval) {
             nextTime.setTime(this.activeKeyChangeTime.getTime() + this.keyRotationInterval);
         }
-        for (let [name, receiver] of this.receivers) {
+        for (let [name, receiver] of this.decryptReceivers) {
             if (receiver.startDate > this.activeKeyChangeTime && receiver.startDate < nextTime) {
                 nextTime = receiver.startDate;
             }

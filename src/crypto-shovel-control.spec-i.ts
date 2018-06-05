@@ -43,8 +43,8 @@ describe("Test ControlCryptoShovel class", function () {
 
     it("should create an encryption and decryption shovel and send data through it", (done) => {
         // create the sending and receiving shovel
-        encryptionShovel = new ControlCryptoShovel(path.join(configFolder, "control-send-shovel-config.json"));
-        decryptionShovel = new ControlCryptoShovel(path.join(configFolder, "control-receive1-shovel-config.json"));
+        encryptionShovel = new ControlCryptoShovel(path.join(configFolder, "control-encrypt-shovel-config.json"));
+        decryptionShovel = new ControlCryptoShovel(path.join(configFolder, "control-decrypt-shovel-config.json"));
         // this function should receive the decrypted messages only
         function receiver(msg: Amqp.Message) {
             expect(msg.getContent()).to.equal(testMsg);

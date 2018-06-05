@@ -106,8 +106,8 @@ export class ManagedCryptoShovel {
                         let connConfig = this.readConfigFile(configFile);
                         let distributor = new KeyDistributor({
                             rsaKey: this.myRsaKey,
-                            receiverConfigFile: configFile,
-                            receiverRsaKeyFolder:
+                            keyReceiverConfigFile: configFile,
+                            keyReceiverRsaKeyFolder:
                                 connConfig.connectionRsaKeyFolder ||
                                 config.connectionRsaKeyFolder,
                             keyRotationInterval:
