@@ -229,11 +229,9 @@ describe("Test KeyDistributor class", function () {
     it("should immediately send both encrypt and decrypt keys", (done) => {
         const filename = "test2.json";
         createReceiversFile(filename, {
-            encrypt: [
-                {
-                    key: "receiver1.public"
-                }
-            ],           
+            encrypt: {
+                key: "receiver1.public"
+            },
             decrypt: [
                 {
                     key: "receiver2.public"
@@ -256,6 +254,62 @@ describe("Test KeyDistributor class", function () {
                 case 2:
                     expect(waitPeriod).to.be.greaterThan(0);
                     // expect a key to be sent to both receivers
+                    expect(keyCount).to.equal(2);
+                    return done;
+            }
+            throw new Error("Should not pass here");
+        };
+        keyDistributor.start();
+    });
+
+    it("should immediately restart key rotation interval after key rotation interval change", (done) => {
+        const filename = "test3.json";
+        createReceiversFile(filename, {
+            decrypt: [
+                {
+                    key: "receiver1.public"
+                },
+                {
+                    key: "receiver2.public"
+                }
+            ]
+        });
+        let keyDistributor = KeyDistributorTest.create(filename);
+        let keyCount = 0;
+        keyDistributor.sendKeyHandler = (receiver: KeyReceiver) => {
+            keyCount += 1;
+        };
+        let timeoutCount = 0;
+        keyDistributor.timeoutHandler = (waitPeriod: number) => {
+            timeoutCount += 1;
+            switch (timeoutCount) {
+                case 1:
+                    // initialize
+                    expect(waitPeriod).to.equal(0);
+                    return;
+                case 2:
+                    expect(waitPeriod).to.be.greaterThan(0);
+                    expect(keyCount).to.equal(2);
+                    // add key to config
+                    createReceiversFile(filename, {
+                        keyRotationInterval: 10000,
+                        decrypt: [
+                            {
+                                key: "receiver1.public"
+                            },
+                            {
+                                key: "receiver2.public"
+                            }
+                        ]
+                    });
+                    keyCount = 0;
+                    return;
+                case 3:
+                    // expect immediate update
+                    expect(waitPeriod).to.equal(0);
+                    return;
+                case 4:
+                    // expect both receivers to receive a key update
                     expect(keyCount).to.equal(2);
                     return done;
             }
