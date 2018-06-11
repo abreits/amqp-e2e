@@ -1,20 +1,20 @@
 {
-    "type": "simple-sender",
-    "key": "5d999a80f53e7957aef724d7881776ad969467c8c9574dd15c01e4bcca8afa74",
-    "from": {
+    "shovelRole": "simple-decrypt",
+    "messageKey": "5d999a80f53e7957aef724d7881776ad969467c8c9574dd15c01e4bcca8afa74",
+    "readFrom": {
         "connectionUrl": "amqp://open_amqp",
         "binding": {
-            "exchange": "simple-src-exchange",
+            "exchange": "simple-encrypted-exchange",
             "exchangeType": "fanout",
             "options": {
                 "autoDelete": true
             }
         }
     },
-    "to": {
+    "sendTo": {
         "connectionUrl": "amqp://open_amqp",
         "binding": {
-            "exchange": "simple-encrypted-exchange",
+            "exchange": "simple-dest-exchange",
             "exchangeType": "fanout",
             "options": {
                 "autoDelete": true

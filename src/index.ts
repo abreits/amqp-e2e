@@ -27,7 +27,7 @@ try {
     switch (config.shovelRole) {
         case "simple-encrypt":
         case "simple-decrypt":
-            //shovel = new SimpleCryptoShovel(config as SimpleShovelConfig, localConfig, remoteConfig);
+            shovel = new SimpleCryptoShovel(config as SimpleShovelConfig);
             break;
         case "control-encrypt":
         case "control-decrypt":

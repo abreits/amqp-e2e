@@ -9,6 +9,7 @@ import * as path from "path";
 
 import * as Amqp from "amqp-ts";
 import { SimpleCryptoShovel } from "./crypto-shovel-simple";
+import { getFile } from "./crypto-shovel";
 
 // define test defaults
 const ConnectionUrl = "amqp://open_amqp";
@@ -42,8 +43,10 @@ describe("Test SimpleCryptoShovel class", function () {
 
     it("should create an encryption and decryption shovel and send data through it", (done) => {
         // create the sending and receiving shovel
-        encryptionShovel = new SimpleCryptoShovel(path.join(configFolder, "simple-send-shovel-config.json"));
-        decryptionShovel = new SimpleCryptoShovel(path.join(configFolder, "simple-receive-shovel-config.json"));
+        let encryptFile = getFile(path.join(configFolder, "simple-encrypt-shovel-config.json"));
+        let decryptFile = getFile(path.join(configFolder, "simple-decrypt-shovel-config.json"));        
+        encryptionShovel = new SimpleCryptoShovel(JSON.parse(encryptFile));
+        decryptionShovel = new SimpleCryptoShovel(JSON.parse(decryptFile));
         encryptionShovel.start();
         decryptionShovel.start();
 
