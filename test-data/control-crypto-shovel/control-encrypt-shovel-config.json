@@ -1,5 +1,5 @@
 {
-    "shovelRole": "control-encrypt",
+    "shovelRole": "control-startpoint",
     "localPublicRsaKeyFile": "$(workspaceRoot}/test-data/rsa-keys/sender.public",
     "localPrivateRsaKeyFile": "$(workspaceRoot}/test-data/rsa-keys/sender.private",
     "remoteRsaKeyDir": "$(workspaceRoot}/test-data/rsa-keys/",

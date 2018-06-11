@@ -48,7 +48,7 @@ export class ControlCryptoShovel {
         this.role = config.shovelRole;
 
         switch (this.role) {
-            case "control-encrypt":
+            case "control-startpoint":
                 // prepare key-distributor
                 const encryptConfig = config as ControlShovelEncryptConfig;
                 this.distributor = new KeyDistributor({
@@ -60,7 +60,7 @@ export class ControlCryptoShovel {
                     endUpdateWindow: encryptConfig.endUpdateWindow
                 });
                 break;
-            case "control-decrypt":
+            case "control-endpoint":
                 // get the public key of the corresponding control-encrypt
                 const decryptConfig = config as ControlShovelDecryptConfig;
                 encryptPublicPem = getFile(decryptConfig.remotePublicRsaKeyFile, remoteConfig, ".pem", "public");
@@ -78,7 +78,7 @@ export class ControlCryptoShovel {
         this.from = new AmqpConnection(this.fromConfig);
         this.to = new AmqpConnection(this.toConfig);
         switch (this.role) {
-            case "control-encrypt":
+            case "control-startpoint":
                 this.from.onMessage(this.encryptAndSend);
                 if (deferDistributor) {
                     this.distributorTimeout = setTimeout(() => {
@@ -87,7 +87,7 @@ export class ControlCryptoShovel {
                     }, deferDistributor);
                 }
                 break;
-            case "control-decrypt":
+            case "control-endpoint":
                 // todo setup receiver (process both key and content messages)
                 // todo initialize keymanager (and read persisted key file)
                 this.from.onMessage(this.decryptAndSend);
@@ -100,14 +100,14 @@ export class ControlCryptoShovel {
 
     stop() {
         switch (this.role) {
-            case "control-encrypt":
+            case "control-startpoint":
                 if (this.distributorTimeout) {
                     clearTimeout(this.distributorTimeout);
                 } else {
                     this.distributor.stop();
                 }
                 break;
-            case "control-decrypt":
+            case "control-endpoint":
                 break;
             default:
                 Log.error("Illegal control-crypto-shovel type", this.role);

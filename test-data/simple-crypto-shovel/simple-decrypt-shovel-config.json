@@ -1,5 +1,5 @@
 {
-    "shovelRole": "simple-decrypt",
+    "shovelRole": "simple-endpoint",
     "messageKey": "5d999a80f53e7957aef724d7881776ad969467c8c9574dd15c01e4bcca8afa74",
     "readFrom": {
         "connectionUrl": "amqp://open_amqp",

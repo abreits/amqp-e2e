@@ -25,16 +25,16 @@ try {
     const config = JSON.parse(configString) as ShovelConfig;
     let shovel: SimpleCryptoShovel | ControlCryptoShovel | ManagedCryptoShovel;
     switch (config.shovelRole) {
-        case "simple-encrypt":
-        case "simple-decrypt":
+        case "simple-startpoint":
+        case "simple-endpoint":
             shovel = new SimpleCryptoShovel(config as SimpleShovelConfig);
             break;
-        case "control-encrypt":
-        case "control-decrypt":
+        case "control-startpoint":
+        case "control-endpoint":
             shovel = new ControlCryptoShovel(config as ControlShovelConfig, localConfig, remoteConfig);
             break;
-        case "managed-encrypt":
-        case "managed-encrypt":
+        case "managed-startpoint":
+        case "managed-startpoint":
         case "managed-admin":
             // todo: implement!
             //shovel = new ManagedCryptoShovel(config as ManagedShovelConfig);

@@ -7,48 +7,13 @@ import * as fs from "fs";
 import { ConnectionConfig } from "./amqp-connection";
 import { SimpleCryptoShovel } from "./crypto-shovel-simple";
 
-export function getDirName(dirname: string, masterFilename?: string) {
-    const configRoot = path.join(__dirname, "..", "config").split("\\").join("/");
-    const workspaceRoot = path.join(__dirname, "..").split("\\").join("/");
-    if (!dirname) {
-        dirname = path.dirname(masterFilename);
-    }
-
-    // replace ${configRoot} with workspace root dir
-    dirname = dirname.split("$(configRoot}").join(configRoot);
-    dirname = dirname.split("$(workspaceRoot}").join(workspaceRoot);
-
-    return dirname;
-}
-
-export function getFileName(filename: string, masterFilename?: string, defaultExtension?: string, defaultBasename?: string) {
-    const configRoot = path.join(__dirname, "..", "config").split("\\").join("/");
-    const workspaceRoot = path.join(__dirname, "..").split("\\").join("/");
-    if (!filename) {
-        const dirname = path.dirname(masterFilename);
-        const basename = defaultBasename ? defaultBasename : path.basename(masterFilename);
-        filename = path.join(dirname, basename + defaultExtension);
-    }
-
-    // replace ${configRoot} with workspace root dir
-    filename =  filename.split("$(configRoot}").join(configRoot);
-    filename =  filename.split("$(workspaceRoot}").join(workspaceRoot);
-
-    return filename;
-}
-
-export function getFile(filename: string, masterFilename?: string, defaultExtension?: string, defaultBasename?: string) {
-    filename = getFileName(filename, masterFilename, defaultExtension, defaultBasename);
-    return fs.readFileSync(filename, "utf8");
-}
-
 export enum Role {
-    simpleEncrypt = "simple-encrypt",
-    simpleDecrypt = "simple-decrypt",
-    controlEncrypt = "control-encrypt",
-    controlDecrypt = "control-decrypt",
-    managedEncrypt = "managed-encrypt",
-    managedDecrypt = "managed-decrypt",
+    simpleStartpoint = "simple-startpoint",
+    simpleEndpoint = "simple-endpoint",
+    controlStartpoint = "control-startpoint",
+    controlEndpoint = "control-endpoint",
+    managedStartpoint = "managed-startpoint",
+    managedEndpoint = "managed-endpoint",
     managedAdmin = "managed-admin"
 }
 
@@ -126,4 +91,39 @@ export interface ManagedShovelAdminConfig extends ManagedShovelConfig {
 
 export interface ManagedCryptoKeyReceivers extends ControlCryptoKeyReceivers {
     encrypt: CryptoKeyReceiver;
+}
+
+export function getDirName(dirname: string, masterFilename?: string) {
+    const configRoot = path.join(__dirname, "..", "config").split("\\").join("/");
+    const workspaceRoot = path.join(__dirname, "..").split("\\").join("/");
+    if (!dirname) {
+        dirname = path.dirname(masterFilename);
+    }
+
+    // replace ${configRoot} with workspace root dir
+    dirname = dirname.split("$(configRoot}").join(configRoot);
+    dirname = dirname.split("$(workspaceRoot}").join(workspaceRoot);
+
+    return dirname;
+}
+
+export function getFileName(filename: string, masterFilename?: string, defaultExtension?: string, defaultBasename?: string) {
+    const configRoot = path.join(__dirname, "..", "config").split("\\").join("/");
+    const workspaceRoot = path.join(__dirname, "..").split("\\").join("/");
+    if (!filename) {
+        const dirname = path.dirname(masterFilename);
+        const basename = defaultBasename ? defaultBasename : path.basename(masterFilename);
+        filename = path.join(dirname, basename + defaultExtension);
+    }
+
+    // replace ${configRoot} with workspace root dir
+    filename =  filename.split("$(configRoot}").join(configRoot);
+    filename =  filename.split("$(workspaceRoot}").join(workspaceRoot);
+
+    return filename;
+}
+
+export function getFile(filename: string, masterFilename?: string, defaultExtension?: string, defaultBasename?: string) {
+    filename = getFileName(filename, masterFilename, defaultExtension, defaultBasename);
+    return fs.readFileSync(filename, "utf8");
 }

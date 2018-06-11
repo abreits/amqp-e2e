@@ -30,9 +30,9 @@ export class SimpleCryptoShovel {
     start() {
         this.from = new AmqpConnection(this.fromConfig);
         this.to = new AmqpConnection(this.toConfig);
-        if (this.role === "simple-encrypt") {
+        if (this.role === "simple-startpoint") {
             this.from.onMessage(this.encryptAndSend);
-        } else if (this.role === "simple-decrypt") {
+        } else if (this.role === "simple-endpoint") {
             this.from.onMessage(this.decryptAndSend);
         } else {
             Log.error("Illegal simple-crypto-shovel type");
