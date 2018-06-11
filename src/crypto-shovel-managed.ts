@@ -59,9 +59,9 @@ export class ManagedCryptoShovel {
 
     protected readConfigFile(configFileName) {
         let configString = fs.readFileSync(configFileName, "utf8");
-        // replace ${workspaceRoot} with workspace root dir
+        // replace $(configRoot} with workspace root dir
         const workspaceRoot = path.join(__dirname, "..").split("\\").join("/");
-        configString = configString.split("${workspaceRoot}").join(workspaceRoot);
+        configString = configString.split("$(configRoot}").join(workspaceRoot);
         return JSON.parse(configString) as ManagedShovelConfig;
     }
 
@@ -106,8 +106,8 @@ export class ManagedCryptoShovel {
                         let connConfig = this.readConfigFile(configFile);
                         let distributor = new KeyDistributor({
                             rsaKey: this.myRsaKey,
-                            keyReceiverConfigFile: configFile,
-                            keyReceiverRsaKeyFolder:
+                            remoteConfigFile: configFile,
+                            remoteDir:
                                 connConfig.connectionRsaKeyFolder ||
                                 config.connectionRsaKeyFolder,
                             keyRotationInterval:

@@ -1,10 +1,10 @@
 {
-    "type": "control-sender",
-    "publicRsaKeyFile": "${workspaceRoot}/test-data/rsa-keys/sender.public",
-    "privateRsaKeyFile": "${workspaceRoot}/test-data/rsa-keys/sender.private",
-    "keyReceiverRsaKeyFolder": "${workspaceRoot}/test-data/rsa-keys/",
-    "keyReceiverConfigFile": "${workspaceRoot}/test-data/control-crypto-shovel/keyReceivers.json",
-    "from": {
+    "shovelRole": "control-encrypt",
+    "localPublicRsaKeyFile": "$(workspaceRoot}/test-data/rsa-keys/sender.public",
+    "localPrivateRsaKeyFile": "$(workspaceRoot}/test-data/rsa-keys/sender.private",
+    "remoteRsaKeyDir": "$(workspaceRoot}/test-data/rsa-keys/",
+    "remoteConfigFile": "$(workspaceRoot}/test-data/control-crypto-shovel/keyReceivers.json",
+    "readFrom": {
         "connectionUrl": "amqp://open_amqp",
         "binding": {
             "exchange": "control-src-exchange",
@@ -14,7 +14,7 @@
             }
         }
     },
-    "to": {
+    "sendTo": {
         "connectionUrl": "amqp://open_amqp",
         "binding": {
             "exchange": "control-encrypted-exchange",

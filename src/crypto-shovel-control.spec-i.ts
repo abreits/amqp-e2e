@@ -9,6 +9,7 @@ import * as path from "path";
 
 import * as Amqp from "amqp-ts";
 import { ControlCryptoShovel } from "./crypto-shovel-control";
+import { getFile } from "./crypto-shovel";
 
 // define test defaults
 const ConnectionUrl = "amqp://open_amqp";
@@ -43,8 +44,10 @@ describe("Test ControlCryptoShovel class", function () {
 
     it("should create an encryption and decryption shovel and send data through it", (done) => {
         // create the sending and receiving shovel
-        encryptionShovel = new ControlCryptoShovel(path.join(configFolder, "control-encrypt-shovel-config.json"));
-        decryptionShovel = new ControlCryptoShovel(path.join(configFolder, "control-decrypt-shovel-config.json"));
+        let encryptFile = getFile(path.join(configFolder, "control-encrypt-shovel-config.json"));
+        let decryptFile = getFile(path.join(configFolder, "control-decrypt-shovel-config.json"));
+        encryptionShovel = new ControlCryptoShovel(JSON.parse(encryptFile));
+        decryptionShovel = new ControlCryptoShovel(JSON.parse(decryptFile));
         // this function should receive the decrypted messages only
         function receiver(msg: Amqp.Message) {
             expect(msg.getContent()).to.equal(testMsg);

@@ -21,8 +21,8 @@ import { Log } from "./log";
 export interface KeyDistributorConfig {
     connection?: AmqpConnection; // send keys to
     rsaKey: RsaKey; // rsa key of the sender
-    keyReceiverRsaKeyFolder?: string; // full path of the directory where all receivers public key files can be found
-    keyReceiverConfigFile?: string; // receivers definition json filename, defaults to receivers.json
+    remoteDir?: string; // full path of the directory where all receivers public key files can be found
+    remoteConfigFile?: string; // receivers definition json filename, defaults to receivers.json
 
     keyRotationInterval?: number; //force new key to be used after .. ms, default every 24 hours, 0 is never
     startUpdateWindow?: number; // when, before new key activates, to start sending new keys to receivers in ms (default 1 hour)
@@ -46,8 +46,8 @@ export class KeyDistributor {
     constructor(config: KeyDistributorConfig) {
         this.connection = config.connection;
         this.rsaKey = config.rsaKey;
-        this.keyReceiverRsaKeyFolder = config.keyReceiverRsaKeyFolder || "/config/rsakeys/";
-        this.keyReceiverConfigFile = config.keyReceiverConfigFile || "/config/receivers.json";
+        this.keyReceiverRsaKeyFolder = config.remoteDir || "/config/rsakeys/";
+        this.keyReceiverConfigFile = config.remoteConfigFile || "/config/receivers.json";
         this.keyRotationInterval = config.keyRotationInterval ? config.keyRotationInterval : 24 * 3600000;
         this.startUpdateWindow = config.startUpdateWindow ? config.startUpdateWindow : 3600000;
         this.endUpdateWindow = config.endUpdateWindow ? config.endUpdateWindow : 3300000;

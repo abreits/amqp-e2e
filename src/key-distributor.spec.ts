@@ -57,16 +57,16 @@ class KeyDistributorTest extends KeyDistributor {
             distributor = new KeyDistributorTest({
                 connection: null,
                 rsaKey: senderKey,
-                keyReceiverRsaKeyFolder: rsaKeyFolder,
-                keyReceiverConfigFile: path.join(distributorTestFolder, keyReceiverConfigFile)
+                remoteDir: rsaKeyFolder,
+                remoteConfigFile: path.join(distributorTestFolder, keyReceiverConfigFile)
             });
         } else {
             keyReceiverConfigFile = config.keyReceiverConfigFile;
             distributor = new KeyDistributorTest({
                 connection: null,
                 rsaKey: senderKey,
-                keyReceiverRsaKeyFolder: rsaKeyFolder,
-                keyReceiverConfigFile: path.join(distributorTestFolder, keyReceiverConfigFile),
+                remoteDir: rsaKeyFolder,
+                remoteConfigFile: path.join(distributorTestFolder, keyReceiverConfigFile),
                 keyRotationInterval: config.keyRotationInterval,
                 startUpdateWindow: config.startUpdateWindow,
                 endUpdateWindow: config.endUpdateWindow
@@ -147,8 +147,8 @@ describe("Test KeyDistributor class", function () {
         let keyDistributor = new KeyDistributorTest({
             connection: null,
             rsaKey: senderKey,
-            keyReceiverConfigFile: path.join(distributorTestFolder, "receivers.json"),
-            keyReceiverRsaKeyFolder: rsaKeyFolder
+            remoteConfigFile: path.join(distributorTestFolder, "receivers.json"),
+            remoteDir: rsaKeyFolder
         });
         keyDistributor.processkeyReceiverConfigFile();
         expect(keyDistributor.getActiveReceiversOn(new Date("2010-06-01T00:00:00.000Z")).size).to.equal(4);

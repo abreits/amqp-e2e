@@ -3,41 +3,19 @@
  * 2018-04-1 by Ab Reitsma
  */
 
-import * as fs from "fs";
-import * as path from "path";
-import * as Amqp from "amqp-ts";
-import { AmqpConnection, ConnectionConfig, ExchangeDefinition, QueueDefinition } from "./amqp-connection";
+import { AmqpConnection, ConnectionConfig } from "./amqp-connection";
 import { Key } from "./key";
 import { KeyManager } from "./key-manager";
-import { KeyDistributor, KeyDistributorConfig } from "./key-distributor";
+import { KeyDistributor } from "./key-distributor";
 import { CryptoMessage, addCryptoMessage } from "./crypto-message";
 import { KeyReceiver } from "./key-receiver";
 import { RsaKey } from "./rsa-key";
 import { Log } from "./log";
+import { ControlShovelConfig, getFile, ControlShovelDecryptConfig, ControlShovelEncryptConfig, getFileName, getDirName } from "./crypto-shovel";
 addCryptoMessage();
 
-
-export interface ControlShovelConfig {
-    type: string;
-    from: ConnectionConfig;
-    to: ConnectionConfig;
-    privateRsaKeyFile: string; // path to private cert file of this shovel
-    publicRsaKeyFile: string; // path to public cert file of this shovel
-
-    // properties below only needed for control-receiver
-    senderPublicRsaKeyFile: string;
-    persistFile?: string; // path to the file contains persistance information
-
-    // properties below only needed for the control-sender
-    keyReceiverConfigFile?: string; // path to configuration file for the receivers, default "/config/receivers.json"
-    keyReceiverRsaKeyFolder?: string; // path to folder containing receivers RSA public keys, default "/config/rsakeys/"
-    keyRotationInterval?: number; // force new key to be used after .. ms, default every 24 hours, 0 is never
-    startUpdateWindow?: number; // when, before new key activates, to start sending new keys to receivers in ms, default 1 hour
-    endUpdateWindow?: number; // when, before new key activates, all new keys should be sent, default 55 minutes
-}
-
 export class ControlCryptoShovel {
-    protected type: string; // type of shovel, "control-sender" or "control-receiver"
+    protected role: string; // type of shovel, "control-sender" or "control-receiver"
 
     protected myRsaKey: RsaKey;
     protected senderRsaKey: RsaKey; // only needed by receiver, contains public key of sender
@@ -53,55 +31,45 @@ export class ControlCryptoShovel {
     protected started: boolean;
     protected distributorTimeout: any;
 
-    constructor(configFileName: string) {
-        // read file and parse json
-        let config;
+    constructor(config: ControlShovelConfig, localConfig?: string, remoteConfig?: string) {
+        let publicPem, privatePem, encryptPublicPem;
+
         try {
-            let configString = fs.readFileSync(configFileName, "utf8");
-            // replace ${workspaceRoot} with workspace root dir
-            const workspaceRoot = path.join(__dirname, "..").split("\\").join("/");
-            configString = configString.split("${workspaceRoot}").join(workspaceRoot);
-            config = JSON.parse(configString) as ControlShovelConfig;
-        } catch (e) {
-            Log.error("Error reading ControlCryptoShovel config file", e);
-            throw new Error("Error reading ControlCryptoShovel config file");
-        }
-        let publicPem, privatePem, senderPublicPem;
-        try {
-            publicPem = fs.readFileSync(config.publicRsaKeyFile);
-            privatePem = fs.readFileSync(config.privateRsaKeyFile);
-            if (config.senderPublicRsaKeyFile) {
-                senderPublicPem = fs.readFileSync(config.senderPublicRsaKeyFile);
-            }
+            publicPem = getFile(config.localPublicRsaKeyFile, localConfig, ".pem", "public");
+            privatePem = getFile(config.localPrivateRsaKeyFile, localConfig, ".pem", "private");
         } catch (e) {
             Log.error("Error reading ControlCryptoShovel rsa key file", e);
             throw new Error("Error reading ControlCryptoShovel rsa key file");
         }
 
         this.myRsaKey = new RsaKey(publicPem, privatePem);
-        this.fromConfig = config.from;
-        this.toConfig = config.to;
-        this.type = config.type;
+        this.fromConfig = config.readFrom;
+        this.toConfig = config.sendTo;
+        this.role = config.shovelRole;
 
-        switch (this.type) {
-            case "control-sender":
+        switch (this.role) {
+            case "control-encrypt":
                 // prepare key-distributor
+                const encryptConfig = config as ControlShovelEncryptConfig;
                 this.distributor = new KeyDistributor({
                     rsaKey: this.myRsaKey,
-                    keyReceiverRsaKeyFolder: config.keyReceiverRsaKeyFolder,
-                    keyReceiverConfigFile: config.keyReceiverConfigFile,
-                    keyRotationInterval: config.keyRotationInterval,
-                    startUpdateWindow: config.startUpdateWindow,
-                    endUpdateWindow: config.endUpdateWindow
+                    remoteDir: getDirName(encryptConfig.remoteRsaKeyDir, encryptConfig.remoteConfigFile || remoteConfig,),
+                    remoteConfigFile: getFileName(encryptConfig.remoteConfigFile || remoteConfig),
+                    keyRotationInterval: encryptConfig.keyRotationInterval,
+                    startUpdateWindow: encryptConfig.startUpdateWindow,
+                    endUpdateWindow: encryptConfig.endUpdateWindow
                 });
                 break;
-            case "control-receiver":
+            case "control-decrypt":
+                // get the public key of the corresponding control-encrypt
+                const decryptConfig = config as ControlShovelDecryptConfig;
+                encryptPublicPem = getFile(decryptConfig.remotePublicRsaKeyFile, remoteConfig, ".pem", "public");
                 // prepare key-receiver
-                this.keys = new KeyManager(config.persistFile);
-                this.senderRsaKey = new RsaKey(senderPublicPem);
+                this.keys = new KeyManager(decryptConfig.persistFile);
+                this.senderRsaKey = new RsaKey(encryptPublicPem);
                 break;
             default:
-                Log.error("Illegal control-crypto-shovel type", this.type);
+                Log.error("Illegal control-crypto-shovel type", this.role);
                 throw new Error("Illegal control-crypto-shovel type");
         }
     }
@@ -109,8 +77,8 @@ export class ControlCryptoShovel {
     start(deferDistributor?: number) {
         this.from = new AmqpConnection(this.fromConfig);
         this.to = new AmqpConnection(this.toConfig);
-        switch (this.type) {
-            case "control-sender":
+        switch (this.role) {
+            case "control-encrypt":
                 this.from.onMessage(this.encryptAndSend);
                 if (deferDistributor) {
                     this.distributorTimeout = setTimeout(() => {
@@ -119,30 +87,30 @@ export class ControlCryptoShovel {
                     }, deferDistributor);
                 }
                 break;
-            case "control-receiver":
+            case "control-decrypt":
                 // todo setup receiver (process both key and content messages)
                 // todo initialize keymanager (and read persisted key file)
                 this.from.onMessage(this.decryptAndSend);
                 break;
             default:
-                Log.error("Illegal control-crypto-shovel type", this.type);
+                Log.error("Illegal control-crypto-shovel type", this.role);
                 throw new Error("Illegal control-crypto-shovel type");
         }
     }
 
     stop() {
-        switch (this.type) {
-            case "control-sender":
+        switch (this.role) {
+            case "control-encrypt":
                 if (this.distributorTimeout) {
                     clearTimeout(this.distributorTimeout);
                 } else {
                     this.distributor.stop();
                 }
                 break;
-            case "control-receiver":
+            case "control-decrypt":
                 break;
             default:
-                Log.error("Illegal control-crypto-shovel type", this.type);
+                Log.error("Illegal control-crypto-shovel type", this.role);
                 throw new Error("Illegal control-crypto-shovel type");
         }
         return Promise.all([
