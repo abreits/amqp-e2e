@@ -8,14 +8,15 @@ import { SimpleCryptoShovel } from "./crypto-shovel-simple";
 import { ControlCryptoShovel } from "./crypto-shovel-control";
 import { ManagedCryptoShovel } from "./crypto-shovel-managed";
 
+// start logging
+Log.start();
+
 // read the configuration file
 try {
-    console.log("starting");
     const localConfig = process.env.LOCAL_CONFIG || "${configRoot}/local/config.json";
     const remoteConfig = process.env.REMOTE_CONFIG || "${configRoot}/remote/config.json";
     const configString = getFile(localConfig);
     const config = JSON.parse(configString) as ShovelConfig;
-    console.log("read config:", config);
     let shovel: SimpleCryptoShovel | ControlCryptoShovel | ManagedCryptoShovel;
     switch (config.shovelRole) {
         case "simple-startpoint":
