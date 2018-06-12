@@ -19,7 +19,6 @@ export class RsaKey {
         if (this.md5Hash) {
             return this.md5Hash;
         } else {
-            const hasher = crypto.createHash("MD5");
             let publicKey = forge.pki.publicKeyFromPem(this.publicPem);
             let md5Hash = forge.ssh.getPublicKeyFingerprint(publicKey, {
                 md: forge.md.md5.create(),
