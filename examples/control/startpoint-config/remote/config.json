@@ -1,0 +1,7 @@
+{
+    "decrypt": [
+        {
+            "key": "receiver1.public.pem"
+        }
+    ]
+}
