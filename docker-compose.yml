@@ -4,20 +4,20 @@ services:
     container_name: open_amqp
     image: rabbitmq:management
     ports:
-     - 15672:15672
-     - 5672:5672
+     - 15673:15672
+     - 5673:5672
   src_amqp:
     container_name: src_amqp
     image: rabbitmq:management
     ports:
-     - 15671:15672
-     - 5671:5672
+     - 15674:15672
+     - 5674:5672
   dest_amqp:
     container_name: dest_amqp
     image: rabbitmq:management
     ports:
-     - 15670:15672
-     - 5670:5672
+     - 15675:15672
+     - 5675:5672
   dev:
     container_name: dev_amqp_e2e
     build: .
