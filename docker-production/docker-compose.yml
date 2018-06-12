@@ -16,8 +16,8 @@ services:
     volumes:
      - ../examples/simple/startpoint-config:/amqp-e2e/config/
      - ../logs/simple-startpoint:/amqp-e2e/logs/
-    environment:
-    - START=dev # dev starts keep-alive (keep container running), run starts shovel
+    # environment:
+    # - START=dev # dev starts keep-alive (keep container running), run starts shovel
     #  - LOCAL_CONFIG=<path to config file> # default /config/local/config.json
     #  - REMOTE_CONFIG=<path to config file> # default /config/remote/config.json
     depends_on:
