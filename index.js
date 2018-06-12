@@ -20,7 +20,7 @@ switch (start) {
         break;
     default:
         console.log("Starting amqp-e2e shovel.");
-        require("run/index"); // only works in docker-production version
+        require("./run/index"); // only works in docker-production version
 }
 
 
