@@ -64,7 +64,7 @@ export interface ControlCryptoKeyReceivers {
     name?: string; // name of the encryption/decryption shovel combo (for admin purposes only)
     details?: string; // details of the encryption/decryption shovel combo (for admin purposes only)
 
-    decrypt: CryptoKeyReceiver[];
+    endpoint: CryptoKeyReceiver[];
 
     keyRotationInterval?: number; // force new key to be used after .. ms, default every 24 hours, default is never
     startUpdateWindow?: number; // when, before new key activates, to start sending new keys to receivers in ms, default 1 hour
@@ -89,7 +89,7 @@ export interface ManagedShovelAdminConfig extends ManagedShovelConfig {
 }
 
 export interface ManagedCryptoKeyReceivers extends ControlCryptoKeyReceivers {
-    encrypt: CryptoKeyReceiver;
+    startpoint: CryptoKeyReceiver;
 }
 
 export function getDirName(dirname: string, masterFilename?: string) {

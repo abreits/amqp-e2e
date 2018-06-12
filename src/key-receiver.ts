@@ -22,8 +22,8 @@ export interface KeyReceiverDefinition {
 }
 
 export interface KeyReceiverDefinitions {
-    encrypt?: KeyReceiverDefinition;
-    decrypt: KeyReceiverDefinition[];  
+    startpoint?: KeyReceiverDefinition;
+    endpoint: KeyReceiverDefinition[];  
     
     keyRotationInterval?: number; // force new key to be used after .. ms, default every 24 hours, default is never
     startUpdateWindow?: number; // when, before new key activates, to start sending new keys to receivers in ms, default 1 hour

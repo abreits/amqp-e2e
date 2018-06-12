@@ -132,8 +132,8 @@ export class KeyDistributor {
                 this.endUpdateWindow = config.endUpdateWindow;
             }
 
-            const encryptReceiver = config.encrypt;
-            const decryptReceivers = config.decrypt;
+            const encryptReceiver = config.startpoint;
+            const decryptReceivers = config.endpoint;
             for (let i = 0; i < decryptReceivers.length; i += 1) {
                 const receiver = KeyReceiver.create(decryptReceivers[i], this.keyReceiverRsaKeyFolder);
                 newReceivers.set(receiver.id, receiver);
