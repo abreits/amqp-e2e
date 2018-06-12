@@ -8,8 +8,8 @@ import * as path from "path";
 import * as Chai from "chai";
 const expect = Chai.expect;
 
-import { KeyDistributor, KeyDistributorConfig } from "./key-distributor";
-import { KeyReceiver, KeyReceiverDefinition, KeyReceiverDefinitions } from "./key-receiver";
+import { KeyDistributor } from "./key-distributor";
+import { KeyReceiver, KeyReceiverDefinitions } from "./key-receiver";
 import { RsaKey } from "./rsa-key";
 
 // define test defaults

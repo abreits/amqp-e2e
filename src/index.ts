@@ -3,9 +3,8 @@
  */
 
 import { Log } from "./log";
-import * as fs from "fs";
 import * as path from "path";
-import { ShovelConfig, SimpleShovelConfig, ControlShovelConfig, ManagedShovelConfig, getFile } from "./crypto-shovel";
+import { ShovelConfig, SimpleShovelConfig, ControlShovelConfig, getFile } from "./crypto-shovel";
 import { SimpleCryptoShovel } from "./crypto-shovel-simple";
 import { ControlCryptoShovel } from "./crypto-shovel-control";
 import { ManagedCryptoShovel } from "./crypto-shovel-managed";
@@ -39,7 +38,6 @@ try {
             // todo: implement!
             //shovel = new ManagedCryptoShovel(config as ManagedShovelConfig);
             throw new Error("Shovel role not implemented yet: " + config.shovelRole);
-            break;
         default:
             throw new Error("Shovel role undefined: " + config.shovelRole);
     }

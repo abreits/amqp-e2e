@@ -4,8 +4,6 @@
 
 import * as Amqp from "amqp-ts";
 
-import { Log } from "./log";
-
 export interface ExchangeDefinition {
     exchange: string;
     exchangeType: string;

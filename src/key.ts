@@ -2,7 +2,6 @@
  * 2018-04-13 by Ab Reitsma
  */
 import * as crypto from "crypto";
-import * as fs from "fs";
 
 import { RsaKey } from "./rsa-key";
 import { KEY_LENGTH } from "./crypto-message";

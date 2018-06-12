@@ -2,20 +2,17 @@
  * 2018-04-20 by Ab Reitsma
  * */
 
-import * as crypto from "crypto";
 import * as fs from "fs";
-import * as path from "path";
 import * as Amqp from "amqp-ts";
 
 const MAX_DATE = new Date(8640000000000000);
 const MIN_DATE = new Date(-8640000000000000);
 
-import { KEY_LENGTH, CryptoMessage } from "./crypto-message";
 import { Key } from "./key";
-import { KeyManager, KEYID_LENGTH } from "./key-manager";
-import { AmqpConnection, ConnectionConfig } from "./amqp-connection";
+import { KeyManager } from "./key-manager";
+import { AmqpConnection } from "./amqp-connection";
 import { RsaKey } from "./rsa-key";
-import { KeyReceiver, KeyReceiverDefinition, KeyReceiverDefinitions } from "./key-receiver";
+import { KeyReceiver, KeyReceiverDefinitions } from "./key-receiver";
 import { Log } from "./log";
 
 export interface KeyDistributorConfig {

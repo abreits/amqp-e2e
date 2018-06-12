@@ -5,7 +5,6 @@
 import * as path from "path";
 import * as fs from "fs";
 import { ConnectionConfig } from "./amqp-connection";
-import { SimpleCryptoShovel } from "./crypto-shovel-simple";
 
 export enum Role {
     simpleStartpoint = "simple-startpoint",
