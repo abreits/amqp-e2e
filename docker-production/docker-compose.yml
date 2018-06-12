@@ -29,7 +29,7 @@ services:
     image: abreits/amqp_e2e
     volumes:
      - ../examples/simple/endpoint-config:/amqp-e2e/config/
-     - ../examples/simple-endpoint:/amqp-e2e/logs/     
+     - ../logs/simple-endpoint:/amqp-e2e/logs/     
     depends_on:
      - "simple_amqp"
     links:
