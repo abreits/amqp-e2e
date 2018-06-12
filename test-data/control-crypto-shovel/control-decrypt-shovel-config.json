@@ -1,8 +1,8 @@
 {
     "shovelRole": "control-endpoint",
-    "localPublicRsaKeyFile": "$(workspaceRoot}/test-data/rsa-keys/receiver1.public",
-    "localPrivateRsaKeyFile": "$(workspaceRoot}/test-data/rsa-keys/receiver1.private",
-    "remotePublicRsaKeyFile": "$(workspaceRoot}/test-data/rsa-keys/sender.public",
+    "localPublicRsaKeyFile": "${workspaceRoot}/test-data/rsa-keys/receiver1.public",
+    "localPrivateRsaKeyFile": "${workspaceRoot}/test-data/rsa-keys/receiver1.private",
+    "remotePublicRsaKeyFile": "${workspaceRoot}/test-data/rsa-keys/sender.public",
     "readFrom": {
         "connectionUrl": "amqp://open_amqp",
         "binding": {

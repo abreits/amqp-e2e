@@ -12,6 +12,6 @@ WORKDIR /amqp-e2e
 COPY --from=build /src/build/*.js run/
 COPY --from=build /src/package.json /src/index.js ./
 RUN npm install --production
-VOLUME [ "/config" ]
+VOLUME [ "/amqp-e2e/config" ]
 COPY --from=build /src/tools/alive.js tools/
 CMD [ "node", "index"]

@@ -100,8 +100,8 @@ export function getDirName(dirname: string, masterFilename?: string) {
     }
 
     // replace ${configRoot} with workspace root dir
-    dirname = dirname.split("$(configRoot}").join(configRoot);
-    dirname = dirname.split("$(workspaceRoot}").join(workspaceRoot);
+    dirname = dirname.split("${configRoot}").join(configRoot);
+    dirname = dirname.split("${workspaceRoot}").join(workspaceRoot);
 
     return dirname;
 }
@@ -116,9 +116,8 @@ export function getFileName(filename: string, masterFilename?: string, defaultEx
     }
 
     // replace ${configRoot} with workspace root dir
-    filename =  filename.split("$(configRoot}").join(configRoot);
-    filename =  filename.split("$(workspaceRoot}").join(workspaceRoot);
-
+    filename = filename.replace("${configRoot}", configRoot);
+    filename = filename.replace("${workspaceRoot}", workspaceRoot);
     return filename;
 }
 
