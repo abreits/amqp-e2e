@@ -22,6 +22,7 @@ services:
     #  - REMOTE_CONFIG=<path to config file> # default /config/remote/config.json
     depends_on:
      - "example_amqp"
+     - "simple-end" # needs to be up to receive message encryption key
     links:
      - "example_amqp"
   simple-end:

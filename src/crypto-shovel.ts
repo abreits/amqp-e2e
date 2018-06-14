@@ -124,6 +124,6 @@ export function getFileName(filename: string, masterFilename?: string, defaultEx
 
 export function getFile(filename: string, masterFilename?: string, defaultExtension?: string, defaultBasename?: string) {
     filename = getFileName(filename, masterFilename, defaultExtension, defaultBasename);
-    Log.info("Get file: " + filename);
+    Log.debug("Get file: " + filename);
     return fs.readFileSync(filename, "utf8");
 }
