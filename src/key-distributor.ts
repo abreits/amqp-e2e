@@ -147,9 +147,7 @@ export class KeyDistributor {
                 newReceivers.set(receiver.id, receiver);
             }
         } catch (e) {
-            console.log(e);
-            console.log("Error reading file ", this.keyReceiverConfigFile, this.keyReceiverRsaKeyFolder);
-            //todo: log error parsing receiver config file
+            Log.error("Error reading file ", {errot: e, configFile: this.keyReceiverConfigFile, rsaKeyFilder: this.keyReceiverRsaKeyFolder});
         }
 
         // update key rotation interval?
@@ -297,6 +295,7 @@ export class KeyDistributor {
     protected sendNextKey(receiver: KeyReceiver) {
         const message = new Amqp.Message(this.nextKey.encrypt(receiver.receiverKey, this.rsaKey));
         if (this.connection) {
+            Log.info("Sending key to receiver", receiver);
             this.connection.send(message);
         } else {
             Log.warn("Unable to send message, no connection defined", this);

@@ -47,6 +47,7 @@ export class KeyReceiver {
     encrypt?: boolean; // for key-distributor, if true, for encrypt, if not for decrypt (default)
 
     static create(config: KeyReceiverDefinition, receiverDir: string) {
+        Log.info("Creating KeyReceiver", {config: config});
         const receiver = new KeyReceiver();
         try {
             receiver.receiverKey = new RsaKey(fs.readFileSync(path.join(receiverDir, config.key), "utf8"));
