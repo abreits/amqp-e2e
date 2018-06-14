@@ -14,6 +14,7 @@ import { AmqpConnection } from "./amqp-connection";
 import { RsaKey } from "./rsa-key";
 import { KeyReceiver, KeyReceiverDefinitions } from "./key-receiver";
 import { Log } from "./log";
+import { getFile } from "./crypto-shovel";
 
 export interface KeyDistributorConfig {
     connection?: AmqpConnection; // send keys to
@@ -112,7 +113,8 @@ export class KeyDistributor {
         let newKeyRotationInterval;
         const newReceivers: Map<string, KeyReceiver> = new Map;
         try {
-            const configString = fs.readFileSync(this.keyReceiverConfigFile, "utf8");
+            //const configString = fs.readFileSync(this.keyReceiverConfigFile, "utf8");
+            const configString = getFile(this.keyReceiverConfigFile);
             // check if config file really changed (some OSes call this multiple times for a single file change)
             if (((Date.now() - this.lastFileChange.getTime()) < 100) && configString === this.lastReceivers) {
                 this.lastFileChange = new Date();
