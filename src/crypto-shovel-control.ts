@@ -128,7 +128,7 @@ export class ControlCryptoShovel {
     }
 
     protected encryptAndSend = (message: CryptoMessage) => {
-        Log.info("Encrypting message", {message: message});
+        Log.debug("Encrypting message", {message: message});
         message.encrypt(this.distributor.keys);
         this.to.send(message);
     }
@@ -144,7 +144,7 @@ export class ControlCryptoShovel {
                 this.keys.persist();
             }
         } else {
-            Log.info("Decrypting message");
+            Log.debug("Decrypting message");
             const routingKey = message.decrypt(this.keys);
             this.to.send(message, routingKey);
         }

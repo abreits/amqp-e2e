@@ -28,7 +28,7 @@ try {
             shovel = new ControlCryptoShovel(config as ControlShovelConfig, localConfig, remoteConfig);
             break;
         case "managed-startpoint":
-        case "managed-startpoint":
+        case "managed-endpoint":
         case "managed-admin":
             // todo: implement!
             //shovel = new ManagedCryptoShovel(config as ManagedShovelConfig);

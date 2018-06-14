@@ -295,7 +295,7 @@ export class KeyDistributor {
     protected sendNextKey(receiver: KeyReceiver) {
         const message = new Amqp.Message(this.nextKey.encrypt(receiver.receiverKey, this.rsaKey));
         if (this.connection) {
-            Log.info("Sending key to receiver", receiver);
+            Log.debug("Sending key to receiver", receiver);
             this.connection.send(message);
         } else {
             Log.warn("Unable to send message, no connection defined", this);

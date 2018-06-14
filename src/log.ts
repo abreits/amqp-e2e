@@ -8,8 +8,9 @@ import * as winston from "winston";
 import * as path from "path";
 
 const root = path.join(__dirname, "..");
-const errorLogFile = path.join(root, "logs", "error.log");
-const infoLogfile = path.join(root, "logs", "info.log");
+const errorLogFile = path.join(root, "logs", "error.json");
+const infoLogfile = path.join(root, "logs", "info.json");
+const debugLogfile = path.join(root, "logs", "debug.json");
 
 // default transports
 const consoleTransport = new winston.transports.Console({
@@ -19,13 +20,14 @@ const consoleTransport = new winston.transports.Console({
 });
 const errorFileTransport = new winston.transports.File({ filename: errorLogFile, level: "error" });
 const infoFileTransport = new winston.transports.File({ filename: infoLogfile, level: "info", maxsize: 1024 * 1024, maxFiles: 10 });
+const debugFileTransport = new winston.transports.File({ filename: debugLogfile, level: "debug", maxsize: 1024 * 1024, maxFiles: 10 });
 
 // wrapper for the logger
 export class Log {
     // create a default logger
     protected static logger;
 
-    static start(level = "info") {
+    static start(level = "debug") {
         Log.logger = winston.createLogger({
             level: level,
             format: winston.format.combine(
@@ -35,7 +37,8 @@ export class Log {
             transports: [
                 consoleTransport,
                 errorFileTransport,
-                infoFileTransport
+                infoFileTransport,
+                debugFileTransport
             ]
         });
     }
