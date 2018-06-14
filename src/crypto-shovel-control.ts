@@ -128,13 +128,14 @@ export class ControlCryptoShovel {
     }
 
     protected encryptAndSend = (message: CryptoMessage) => {
+        Log.info("Encrypting message", {message: message});
         message.encrypt(this.distributor.keys);
         this.to.send(message);
     }
 
     protected decryptAndSend = (message: CryptoMessage) => {
-        // TODO: check message type, if new key, add to keymanager
         if (message.content[0] === 75) { // 'K'
+            Log.info("Received message encryption key");
             // todo decrypt key and add to keymanager (and persist)
             const decryptedKey = Key.decrypt(message.content, this.myRsaKey, this.senderRsaKey);
             if (decryptedKey) {
@@ -143,6 +144,7 @@ export class ControlCryptoShovel {
                 this.keys.persist();
             }
         } else {
+            Log.info("Decrypting message");
             const routingKey = message.decrypt(this.keys);
             this.to.send(message, routingKey);
         }
