@@ -44,14 +44,15 @@ export class KeyDistributor {
     constructor(config: KeyDistributorConfig) {
         this.connection = config.connection;
         this.rsaKey = config.rsaKey;
-        this.keyReceiverRsaKeyFolder = config.remoteDir || "/config/rsakeys/";
-        this.keyReceiverConfigFile = config.remoteConfigFile || "/config/receivers.json";
+        this.keyReceiverRsaKeyFolder = config.remoteDir || "${configRoot}/remote";
+        this.keyReceiverConfigFile = config.remoteConfigFile || "${configRoot}/remote/config.json";
         this.keyRotationInterval = config.keyRotationInterval ? config.keyRotationInterval : 24 * 3600000;
         this.startUpdateWindow = config.startUpdateWindow ? config.startUpdateWindow : 3600000;
         this.endUpdateWindow = config.endUpdateWindow ? config.endUpdateWindow : 3300000;
     }
 
     start(connection?: AmqpConnection) {
+        Log.info("Starting key distributor", { rsaKeyFolder: this.keyReceiverRsaKeyFolder, configFile: this.keyReceiverConfigFile });
         if (connection) {
             this.connection = connection;
         }

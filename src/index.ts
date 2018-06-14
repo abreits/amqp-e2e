@@ -36,7 +36,7 @@ try {
         default:
             throw new Error("Shovel role undefined: " + config.shovelRole);
     }
-    shovel.start();
+    shovel.start(1000);
 } catch (e) {
     Log.error("Error reading configuration", e);
     process.exit(1);

@@ -27,7 +27,7 @@ export class SimpleCryptoShovel {
         this.role = config.shovelRole;
     }
 
-    start() {
+    start(_?: number) {
         this.from = new AmqpConnection(this.fromConfig);
         this.to = new AmqpConnection(this.toConfig);
         if (this.role === "simple-startpoint") {

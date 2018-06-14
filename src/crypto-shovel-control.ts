@@ -53,7 +53,7 @@ export class ControlCryptoShovel {
                 const encryptConfig = config as ControlShovelEncryptConfig;
                 this.distributor = new KeyDistributor({
                     rsaKey: this.myRsaKey,
-                    remoteDir: getDirName(encryptConfig.remoteRsaKeyDir, encryptConfig.remoteConfigFile || remoteConfig,),
+                    remoteDir: getDirName(encryptConfig.remoteRsaKeyDir, encryptConfig.remoteConfigFile || remoteConfig),
                     remoteConfigFile: getFileName(encryptConfig.remoteConfigFile || remoteConfig),
                     keyRotationInterval: encryptConfig.keyRotationInterval,
                     startUpdateWindow: encryptConfig.startUpdateWindow,
