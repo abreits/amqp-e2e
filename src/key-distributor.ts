@@ -52,7 +52,7 @@ export class KeyDistributor {
     }
 
     start(connection?: AmqpConnection) {
-        Log.info("Starting key distributor", { rsaKeyFolder: this.keyReceiverRsaKeyFolder, configFile: this.keyReceiverConfigFile });
+        Log.debug("Starting key distributor", { rsaKeyFolder: this.keyReceiverRsaKeyFolder, configFile: this.keyReceiverConfigFile });
         if (connection) {
             this.connection = connection;
         }

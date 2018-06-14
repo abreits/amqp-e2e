@@ -135,7 +135,7 @@ export class ControlCryptoShovel {
 
     protected decryptAndSend = (message: CryptoMessage) => {
         if (message.content[0] === 75) { // 'K'
-            Log.info("Received message encryption key");
+            Log.debug("Received message encryption key");
             // todo decrypt key and add to keymanager (and persist)
             const decryptedKey = Key.decrypt(message.content, this.myRsaKey, this.senderRsaKey);
             if (decryptedKey) {
