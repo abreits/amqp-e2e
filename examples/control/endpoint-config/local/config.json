@@ -1,0 +1,23 @@
+{
+    "shovelRole": "control-endpoint",
+    "readFrom": {
+        "connectionUrl": "amqp://example_amqp",
+        "binding": {
+            "exchange": "control-encrypted-exchange",
+            "exchangeType": "fanout",
+            "options": {
+                "autoDelete": true
+            }
+        }
+    },
+    "sendTo": {
+        "connectionUrl": "amqp://example_amqp",
+        "binding": {
+            "exchange": "control-dest-exchange",
+            "exchangeType": "fanout",
+            "options": {
+                "autoDelete": true
+            }
+        }
+    }
+}

@@ -1,36 +1,36 @@
 version: '2'
 services:
-  simple_amqp:
-    container_name: simple_amqp
+  example_amqp:
+    container_name: example_amqp
     image: rabbitmq:management
     ports:
      - 15672:15672
      - 5672:5672  
   simple-start:
-    container_name: simple-start
-    build: .
+    container_name: control-start
+    build: ..
     image: abreits/amqp_e2e
     # ports:
     #  - 5671:5671  # AMQP port TLS/SSL
     #  - 5672:5672  # AMQP port
     volumes:
-     - ../examples/simple/startpoint-config:/amqp-e2e/config/
-     - ../logs/simple-startpoint:/amqp-e2e/logs/
+     - ../../examples/control/startpoint-config:/amqp-e2e/config/
+     - ../../logs/control-startpoint:/amqp-e2e/logs/
     # environment:
     # - START=dev # dev starts keep-alive (keep container running), run starts shovel
     #  - LOCAL_CONFIG=<path to config file> # default /config/local/config.json
     #  - REMOTE_CONFIG=<path to config file> # default /config/remote/config.json
     depends_on:
-     - "simple_amqp"
+     - "example_amqp"
     links:
-     - "simple_amqp"
+     - "example_amqp"
   simple-end:
-    container_name: simple-end    
+    container_name: control-end    
     image: abreits/amqp_e2e
     volumes:
-     - ../examples/simple/endpoint-config:/amqp-e2e/config/
-     - ../logs/simple-endpoint:/amqp-e2e/logs/     
+     - ../../examples/control/endpoint-config:/amqp-e2e/config/
+     - ../../logs/control-endpoint:/amqp-e2e/logs/     
     depends_on:
-     - "simple_amqp"
+     - "example_amqp"
     links:
-     - "simple_amqp"
+     - "example_amqp"

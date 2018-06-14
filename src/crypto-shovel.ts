@@ -5,6 +5,7 @@
 import * as path from "path";
 import * as fs from "fs";
 import { ConnectionConfig } from "./amqp-connection";
+import { Log } from "./log";
 
 export enum Role {
     simpleStartpoint = "simple-startpoint",
@@ -123,5 +124,6 @@ export function getFileName(filename: string, masterFilename?: string, defaultEx
 
 export function getFile(filename: string, masterFilename?: string, defaultExtension?: string, defaultBasename?: string) {
     filename = getFileName(filename, masterFilename, defaultExtension, defaultBasename);
+    Log.info("Get file: " + filename);
     return fs.readFileSync(filename, "utf8");
 }

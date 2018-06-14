@@ -1,11 +1,7 @@
 {
     "shovelRole": "control-startpoint",
-    "localPublicRsaKeyFile": "${workspaceRoot}/test-data/rsa-keys/sender.public",
-    "localPrivateRsaKeyFile": "${workspaceRoot}/test-data/rsa-keys/sender.private",
-    "remoteRsaKeyDir": "${workspaceRoot}/test-data/rsa-keys/",
-    "remoteConfigFile": "${workspaceRoot}/test-data/control-crypto-shovel/keyReceivers.json",
     "readFrom": {
-        "connectionUrl": "amqp://open_amqp",
+        "connectionUrl": "amqp://example_amqp",
         "binding": {
             "exchange": "control-src-exchange",
             "exchangeType": "fanout",
@@ -15,7 +11,7 @@
         }
     },
     "sendTo": {
-        "connectionUrl": "amqp://open_amqp",
+        "connectionUrl": "amqp://example_amqp",
         "binding": {
             "exchange": "control-encrypted-exchange",
             "exchangeType": "fanout",
