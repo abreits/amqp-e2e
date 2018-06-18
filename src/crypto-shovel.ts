@@ -43,13 +43,13 @@ export interface SimpleShovelConfig extends ShovelConfig {
  */
 
 export interface ControlShovelConfig extends ShovelConfig {
-    localPrivateRsaKeyFile?: string; // path to PEM file with private cert file of this shovel
-    localPublicRsaKeyFile?: string; // path to PEM file with public cert file of this shovel
+    localPrivateRsaKeyFile?: string; // path to PEM file with private RSA key of this shovel
+    localPublicRsaKeyFile?: string; // path to PEM file with public RSA key of this shovel
 }
 
 export interface ControlShovelEncryptConfig extends ControlShovelConfig {
-    remoteConfigFile: string; // path to configuration file for the decrypt shovels, default "/config/receivers.json"
-    remoteRsaKeyDir: string; // path to folder containing decrypt shovel RSA public keys, default "/config/rsakeys/"   
+    remoteConfigFile: string; // path to configuration file for the endpoints, default "${configRoot}/remote/config.json"
+    remoteRsaKeyDir: string; // path to directory containing the endpoint RSA public keys, default "${configRoot}/remote/"   
 
     keyRotationInterval?: number; // force new key to be used after .. ms, default every 24 hours, default is never
     startUpdateWindow?: number; // when, before new key activates, to start sending new keys to receivers in ms, default 1 hour
@@ -57,7 +57,7 @@ export interface ControlShovelEncryptConfig extends ControlShovelConfig {
 }
 
 export interface ControlShovelDecryptConfig extends ControlShovelConfig {
-    remotePublicRsaKeyFile?: string; // path to PEM file with public cert file of the encryption shovel
+    remotePublicRsaKeyFile?: string; // path to PEM file with public RSA key of the encryption shovel
     persistFile?: string; // path to the file contains persistance information    
 }
 
