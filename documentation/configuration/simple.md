@@ -1,6 +1,6 @@
-# Simple configuration
+# Simple start point and endpoint configuration
 
-The simple configuration defines only the source and destination AMQP connections and the encryption key used.
+The simple start point and endpoint configuration define only the source and destination AMQP connections and the encryption key used.
 
 ## Directory structure
 ```
@@ -21,6 +21,7 @@ If `LOCAL_CONFIG` is undefined or empty it defaults to `${configRoot}/local/conf
     "shovelRole": "simple-endpoint",   // "simple-startpoint" or "simple-endpoint", defines whether it encrypts or decrypts the source AMQP connection
     "messageKey": "5d999...8afa74",    // hex representation of the 32 byte AES encryption key
     "readFrom": {                      // definition of the source AMQP connection, see AMQP definition section for details
+        // AMQP connection example
         "connectionUrl": "amqp://example_amqp",
         "binding": {
             "exchange": "simple-encrypted-exchange",
@@ -31,6 +32,7 @@ If `LOCAL_CONFIG` is undefined or empty it defaults to `${configRoot}/local/conf
         }
     },
     "sendTo": {                        // definition of the destination AMQP connection, see AMQP definition section for details
+        // AMQP connection example
         "connectionUrl": "amqp://example_amqp",
         "binding": {
             "exchange": "simple-dest-exchange",
@@ -42,3 +44,4 @@ If `LOCAL_CONFIG` is undefined or empty it defaults to `${configRoot}/local/conf
     }
 }
 ```
+[AMQP connection definition](connection.md)

@@ -1,6 +1,6 @@
-# Control configuration
+# Control start point and endpoint configuration
 
-The control configuration defines the source and destination AMQP connections the same as the simple configuration does.
+The control start point and endpoint configuration defines the source and destination AMQP connections the same as the [simple](simple.md) configuration does.
 It does not define an AES encrytion key, but instead uses RSA keys to securely transmit the AES key
 to be used from the start point to the specified endpoints
 
@@ -34,6 +34,7 @@ If `LOCAL_CONFIG` is undefined or empty it defaults to `${configRoot}/local/conf
 {
     "shovelRole": "control-startpoint",
     "readFrom": {                      // definition of the source AMQP connection, see AMQP connection definition section for details
+        // AMQP connection example
         "connectionUrl": "amqp://example_amqp",
         "binding": {
             "exchange": "simple-encrypted-exchange",
@@ -44,6 +45,7 @@ If `LOCAL_CONFIG` is undefined or empty it defaults to `${configRoot}/local/conf
         }
     },
     "sendTo": {                        // definition of the destination AMQP connection, see AMQP connection definition section for details
+        // AMQP connection example
         "connectionUrl": "amqp://example_amqp",
         "binding": {
             "exchange": "simple-dest-exchange",
@@ -64,6 +66,7 @@ If `LOCAL_CONFIG` is undefined or empty it defaults to `${configRoot}/local/conf
 
 }
 ```
+[AMQP connection definition](connection.md)
 
 ### The `remote/config.json` structure
 ```javascript
@@ -138,3 +141,4 @@ If `LOCAL_CONFIG` is undefined or empty it defaults to `${configRoot}/local/conf
     "remotePublicRsaKeyFile": "${configRoot}/remote/public.json" // path to PEM file with public RSA key of the startpoint
 }
 ```
+[AMQP connection definition](connection.md)
