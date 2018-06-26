@@ -24,7 +24,7 @@ const testPublicKeyPem = "-----BEGIN PUBLIC KEY-----\n" +
     "BQIDAQAB\n" +
     "-----END PUBLIC KEY-----\n";
 const connectionUrl = "amqp://open_amqp";
-const testCountMax = 100000;
+const testCountMax = 1000000;
 const rsaCount = 5;
 
 // just time the difference in creating the message,
