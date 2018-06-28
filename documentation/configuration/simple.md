@@ -11,9 +11,13 @@ The simple start point and endpoint configuration define only the source and des
  |    +-- config.json  # default json config file for this start/end point
  ```
 
-You can specify the configuration file name path by specifying it in the `LOCAL_CONFIG` environment variable. 
+You can specify the configuration file name path by specifying it in the `LOCAL_CONFIG` environment variable.
 The variable can start with `${configRoot}` to specify the configuration root volume.
 If `LOCAL_CONFIG` is undefined or empty it defaults to `${configRoot}/local/config.json`.
+
+### Creating 32-byte AES key files
+
+Look [here](../aes-keys.md) to generate your own 32-byte AES key files.
 
 ## The `config.json` file structure
 ```javascript

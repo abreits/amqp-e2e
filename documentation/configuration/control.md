@@ -25,9 +25,13 @@ to be used from the start point to the specified endpoints
       +-- <endpoint1-name>.pem   # default RSA public key for an endpoint specified in the remote config.json
 ```
 
-You can specify the configuration file name path by specifying it in the `LOCAL_CONFIG` environment variable. 
+You can specify the configuration file name path by specifying it in the `LOCAL_CONFIG` environment variable.
 The variable can start with `${configRoot}` to specify the configuration root volume.
 If `LOCAL_CONFIG` is undefined or empty it defaults to `${configRoot}/local/config.json`.
+
+### Creating RSA key .pem files
+
+Look [here](../rsa-keys.md) to generate your own private.pem and public.pem files.
 
 ### The `local/config.json` structure
 ```javascript
@@ -62,7 +66,7 @@ If `LOCAL_CONFIG` is undefined or empty it defaults to `${configRoot}/local/conf
     "remoteRsaKeyDir": "${configRoot}/remote/",                  // path to directory containing the endpoint RSA public keys
     "keyRotationInterval": 86400000,                             // force new key to be used after .. ms, default every 24 hours, 0 is never
     "startUpdateWindow": 3600000,                                // when, before new key activates, to start sending new keys to receivers in ms, default 1 hour
-    "endUpdateWindow": 3300000                                   // when, before new key activates, all new keys should be sent, default 55 minutes  
+    "endUpdateWindow": 3300000                                   // when, before new key activates, all new keys should be sent, default 55 minutes
 
 }
 ```
@@ -74,7 +78,7 @@ If `LOCAL_CONFIG` is undefined or empty it defaults to `${configRoot}/local/conf
     "endpoint": [
         {
             "key": "receiver1.public.pem" // filename of the RSA public key of the receiver
-            // The properties below are optional            
+            // The properties below are optional
             "startDate": string | number; // UTC date-time, if not defined always start
             "endDate": string | number;   // UTC date-time, if not defined never end
             "resend": boolean; // if true, resend key to this receiver after updating config file
@@ -84,7 +88,7 @@ If `LOCAL_CONFIG` is undefined or empty it defaults to `${configRoot}/local/conf
     // The properties below are optional and override same properties in local/config.json if defined
     "keyRotationInterval": 86400000, // force new key to be used after .. ms, default every 24 hours, 0 is never
     "startUpdateWindow": 3600000,    // when, before new key activates, to start sending new keys to receivers in ms, default 1 hour
-    "endUpdateWindow": 3300000       // when, before new key activates, all new keys should be sent, default 55 minutes  
+    "endUpdateWindow": 3300000       // when, before new key activates, all new keys should be sent, default 55 minutes
 }
 ```
 
@@ -107,7 +111,7 @@ If `LOCAL_CONFIG` is undefined or empty it defaults to `${configRoot}/local/conf
       +-- public.pem   # default RSA public key for the startpoint
 ```
 
-You can specify the configuration file name path by specifying it in the `LOCAL_CONFIG` environment variable. 
+You can specify the configuration file name path by specifying it in the `LOCAL_CONFIG` environment variable.
 The variable can start with `${configRoot}` to specify the configuration root volume.
 If `LOCAL_CONFIG` is undefined or empty it defaults to `${configRoot}/local/config.json`.
 
