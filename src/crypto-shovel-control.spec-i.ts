@@ -66,7 +66,7 @@ describe("Test ControlCryptoShovel class", function () {
             send = conn.declareExchange("control-src-exchange", "fanout", { noCreate: true });
             receive = conn.declareExchange("control-dest-exchange", "fanout", { noCreate: true });
             receive.activateConsumer(receiver, { noAck: true });
-            return conn.initialized;
+            return conn.completeConfiguration();
         }).then(() => {
             setTimeout(() => {
                 // expect the receiver shovel to have received a key

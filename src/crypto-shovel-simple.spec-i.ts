@@ -44,7 +44,7 @@ describe("Test SimpleCryptoShovel class", function () {
     it("should create an encryption and decryption shovel and send data through it", (done) => {
         // create the sending and receiving shovel
         let encryptFile = getFile(path.join(configFolder, "simple-encrypt-shovel-config.json"));
-        let decryptFile = getFile(path.join(configFolder, "simple-decrypt-shovel-config.json"));        
+        let decryptFile = getFile(path.join(configFolder, "simple-decrypt-shovel-config.json"));
         encryptionShovel = new SimpleCryptoShovel(JSON.parse(encryptFile));
         decryptionShovel = new SimpleCryptoShovel(JSON.parse(decryptFile));
         encryptionShovel.start();
@@ -67,13 +67,10 @@ describe("Test SimpleCryptoShovel class", function () {
             send = conn.declareExchange("simple-src-exchange", "fanout", { noCreate: true });
             receive = conn.declareExchange("simple-dest-exchange", "fanout", { noCreate: true });
             receive.activateConsumer(receiver, {noAck: true});
-            return conn.initialized;
+            return conn.completeConfiguration();
         }).then(() => {
-            // workaround: receive.activateConsumer appears to need some extra time to set up?
-            setTimeout(() => {
                 const msg = new Amqp.Message(testMsg);
                 msg.sendTo(send, testRoutingKey);
-            }, 50);
         });
     });
 });
